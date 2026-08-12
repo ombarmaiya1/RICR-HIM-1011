@@ -1,5 +1,5 @@
 import express from "express";
-import { startInterview } from "./interview.controller.js";
+import { startInterview, submitAnswer, completeInterview, getInterviews, getInterview } from "./interview.controller.js";
 import { IsAuthenticated } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.post(
   completeInterview
 );
 
-outer.get("/", IsAuthenticated, getInterviews);
+router.get("/", IsAuthenticated, getInterviews);
 
 router.get("/:interviewId", IsAuthenticated, getInterview);
 export default router;

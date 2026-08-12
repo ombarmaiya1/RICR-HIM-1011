@@ -9,7 +9,7 @@ export const IsAuthenticated = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = { id: decoded.id };
+        req.user = { userId: decoded.id };
         next();
     } catch (error) {
          error.statusCode = 401;

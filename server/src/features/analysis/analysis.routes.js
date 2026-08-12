@@ -1,10 +1,10 @@
 import express from "express";
-import { analyzeResume } from "./analysis.controller.js";
-import authMiddleware from "../../middleware/auth.middleware.js";
+import { analyzeResume, getAnalyses, getAnalysis } from "./analysis.controller.js";
+import { IsAuthenticated } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/", authMiddleware, analyzeResume);
+router.post("/", IsAuthenticated, analyzeResume);
 router.get("/", IsAuthenticated, getAnalyses);
 
 router.get("/:analysisId", IsAuthenticated, getAnalysis);

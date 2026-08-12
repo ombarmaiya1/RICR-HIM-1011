@@ -1,7 +1,7 @@
 import fs from "fs";
 import Resume from "./resume.model.js";
 import AppError from "../../utils/AppError.js";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { parseResumeWithAI } from "../../utils/ai.js";
 
@@ -14,8 +14,9 @@ const uploadResume = async (req, res, next) => {
     let extractedText = "";
 
     if (req.file.mimetype === "application/pdf") {
-      const data = await pdfParse(req.file.buffer);
-      extractedText = data.text;
+      const parser = new PDFParse({ data: req.file.buffer });
+      const result = await parser.getText();
+      extractedText = result.text;
     } 
     else if (
       req.file.mimetype ===

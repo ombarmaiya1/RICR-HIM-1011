@@ -1,6 +1,6 @@
 import express from "express";
 import { uploadResume,getResume,getResumes } from "./resume.controller.js";
-import authMiddleware from "../../middleware/auth.middleware.js";
+import { IsAuthenticated } from "../../middlewares/auth.middleware.js";
 import upload from "../../middlewares/upload.middleware.js";
 
 const router = express.Router();
