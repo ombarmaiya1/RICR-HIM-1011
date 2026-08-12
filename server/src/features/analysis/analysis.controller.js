@@ -1,46 +1,58 @@
-import { ChatGoogle } from "@langchain/google";
-import { z } from "zod";
+import Resume from "../resume/resume.model.js";
+import Job from "../job/job.model.js";
+import Analysis from "./analysis.model.js";
+import AppError from "../../utils/AppError.js";
+import { analyzeWithAI } from "../../utils/ai.js";
 
-const model = new ChatGoogle({
-  model: "gemini-2.5-flash",
-  temperature: 0,
-});
+const analyzeResume = async (req, res, next) => {
+  try {
+    const { resumeId, jobId } = req.body;
 
-const analysisSchema = z.object({
-  matchScore: z.number().min(0).max(100),
+    if (!resumeId || !jobId) {
+      throw new AppError("Resume ID and Job ID are required", 400);
+    }
 
-  matchedSkills: z.array(z.string()),
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      userId: req.user.userId,
+    });
 
-  missingSkills: z.array(z.string()),
+    if (!resume) {
+      throw new AppError("Resume not found", 404);
+    }
 
-  suggestions: z.array(z.string()),
+    const job = await Job.findOne({
+      _id: jobId,
+      userId: req.user.userId,
+    });
 
-  summary: z.string(),
-});
+    if (!job) {
+      throw new AppError("Job description not found", 404);
+    }
 
-const structuredModel = model.withStructuredOutput(analysisSchema);
+    const result = await analyzeWithAI(
+      resume.extractedText,
+      job.description
+    );
 
-export const analyzeWithAI = async (resumeText, jobDescription) => {
-  const prompt = `
-You are an expert ATS resume analyzer.
+    const analysis = await Analysis.create({
+      userId: req.user.userId,
+      resumeId,
+      jobId,
+      matchScore: result.matchScore,
+      matchedSkills: result.matchedSkills,
+      missingSkills: result.missingSkills,
+      suggestions: result.suggestions,
+      summary: result.summary,
+    });
 
-Compare the resume against the target job description.
-
-RESUME:
-${resumeText}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-Analyze:
-1. Overall match score from 0-100.
-2. Skills/requirements that match.
-3. Important skills/requirements missing or weak.
-4. Specific improvements for THIS resume and THIS job.
-5. A short overall summary.
-
-Do not invent experience or skills that are not present.
-`;
-
-  return await structuredModel.invoke(prompt);
+    res.status(201).json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+export { analyzeResume };

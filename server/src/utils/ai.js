@@ -1,41 +1,46 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatGoogle } from "@langchain/google";
+import { z } from "zod";
 
-const model = new ChatGoogleGenerativeAI({
-  model: "gemini-3.5-flash",
+const model = new ChatGoogle({
+  model: "gemini-2.5-flash",
   temperature: 0,
 });
+
+const analysisSchema = z.object({
+  matchScore: z.number().min(0).max(100),
+
+  matchedSkills: z.array(z.string()),
+
+  missingSkills: z.array(z.string()),
+
+  suggestions: z.array(z.string()),
+
+  summary: z.string(),
+});
+
+const structuredModel = model.withStructuredOutput(analysisSchema);
 
 export const analyzeWithAI = async (resumeText, jobDescription) => {
   const prompt = `
 You are an expert ATS resume analyzer.
 
-Analyze the resume against the job description.
+Compare the resume against the target job description.
 
-Resume:
+RESUME:
 ${resumeText}
 
-Job Description:
+JOB DESCRIPTION:
 ${jobDescription}
 
-Return ONLY valid JSON in this format:
+Analyze:
+1. Overall match score from 0-100.
+2. Skills/requirements that match.
+3. Important skills/requirements missing or weak.
+4. Specific improvements for THIS resume and THIS job.
+5. A short overall summary.
 
-{
-  "matchScore": 0,
-  "matchedSkills": [],
-  "missingSkills": [],
-  "suggestions": [],
-  "summary": ""
-}
-
-Rules:
-- matchScore must be between 0 and 100.
-- matchedSkills should contain relevant skills found in both.
-- missingSkills should contain important skills from the job that are missing or weak in the resume.
-- suggestions must be specific to this resume and job.
-- Do not invent experience that is not present in the resume.
+Do not invent experience or skills that are not present.
 `;
 
-  const response = await model.invoke(prompt);
-
-  return JSON.parse(response.content);
+  return await structuredModel.invoke(prompt);
 };
