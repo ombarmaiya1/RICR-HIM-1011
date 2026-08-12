@@ -84,3 +84,74 @@ Requirements:
 
   return await questionModel.invoke(prompt);
 };
+
+const answerEvaluationSchema = z.object({
+  score: z.number().min(0).max(100),
+  feedback: z.string(),
+});
+
+const answerModel = model.withStructuredOutput(
+  answerEvaluationSchema
+);
+
+export const evaluateAnswer = async (question, answer) => {
+  const prompt = `
+You are an experienced interviewer.
+
+Evaluate the candidate's answer.
+
+Question:
+${question}
+
+Candidate Answer:
+${answer}
+
+Evaluate:
+- Relevance to the question
+- Clarity
+- Completeness
+- Quality of explanation
+
+Give a score from 0 to 100 and concise, constructive feedback.
+`;
+
+  return await answerModel.invoke(prompt);
+};
+
+
+const interviewSummarySchema = z.object({
+  overallScore: z.number().min(0).max(100),
+  summary: z.string(),
+});
+
+const summaryModel = model.withStructuredOutput(
+  interviewSummarySchema
+);
+
+export const generateInterviewSummary = async (questions) => {
+  const prompt = `
+You are an experienced interviewer.
+
+Review this mock interview:
+
+${questions
+  .map(
+    (q, i) => `
+Question ${i + 1}: ${q.question}
+Answer: ${q.answer}
+Score: ${q.score}
+Feedback: ${q.feedback}
+`
+  )
+  .join("\n")}
+
+Provide:
+- An overall score from 0 to 100.
+- A concise summary of the candidate's overall performance.
+- Mention key strengths and weaknesses.
+
+Return the result as structured data.
+`;
+
+  return await summaryModel.invoke(prompt);
+};

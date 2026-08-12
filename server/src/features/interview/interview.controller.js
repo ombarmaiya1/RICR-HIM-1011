@@ -3,6 +3,8 @@ import Job from "../job/job.model.js";
 import Interview from "./interview.model.js";
 import AppError from "../../utils/AppError.js";
 import { generateInterviewQuestions } from "../../utils/ai.js";
+import { evaluateAnswer } from "../../utils/ai.js";
+import { generateInterviewSummary } from "../../utils/ai.js";
 
 const startInterview = async (req, res, next) => {
   try {
@@ -32,7 +34,7 @@ const startInterview = async (req, res, next) => {
 
     const result = await generateInterviewQuestions(
       resume.extractedText,
-      job.description
+      job.description,
     );
 
     const interview = await Interview.create({
@@ -54,4 +56,82 @@ const startInterview = async (req, res, next) => {
   }
 };
 
-export { startInterview };
+const submitAnswer = async (req, res, next) => {
+  try {
+    const { interviewId } = req.params;
+    const { questionIndex, answer } = req.body;
+
+    if (questionIndex === undefined || !answer) {
+      throw new AppError("Question index and answer are required", 400);
+    }
+
+    const interview = await Interview.findOne({
+      _id: interviewId,
+      userId: req.user.userId,
+    });
+
+    if (!interview) {
+      throw new AppError("Interview not found", 404);
+    }
+
+    const question = interview.questions[questionIndex];
+
+    if (!question) {
+      throw new AppError("Question not found", 404);
+    }
+
+    const result = await evaluateAnswer(question.question, answer);
+
+    question.answer = answer;
+    question.score = result.score;
+    question.feedback = result.feedback;
+
+    await interview.save();
+
+    res.status(200).json({
+      success: true,
+      question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const completeInterview = async (req, res, next) => {
+  try {
+    const interview = await Interview.findOne({
+      _id: req.params.interviewId,
+      userId: req.user.userId,
+    });
+
+    if (!interview) {
+      throw new AppError("Interview not found", 404);
+    }
+
+    const unanswered = interview.questions.some((question) => !question.answer);
+
+    if (unanswered) {
+      throw new AppError(
+        "Please answer all questions before completing the interview",
+        400,
+      );
+    }
+
+    const result = await generateInterviewSummary(interview.questions);
+
+    interview.overallScore = result.overallScore;
+    interview.summary = result.summary;
+    interview.status = "completed";
+
+    await interview.save();
+
+    res.status(200).json({
+      success: true,
+      interview,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { startInterview, submitAnswer , completeInterview };

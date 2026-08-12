@@ -16,6 +16,7 @@ import resumeRoutes from "./src/features/resume/resume.routes.js";
 import jobRoutes from "./src/features/job/job.routes.js";
 import analysisRoutes from "./src/features/analysis/analysis.routes.js";
 import interviewRoutes from "./src/features/interview/interview.routes.js";
+import dashboardRoutes from "./src/features/dashboard/dashboard.routes.js";
 
 //********************************************************************************* */
 
@@ -42,6 +43,7 @@ app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/analysis", analysisRoutes);
 app.use("/api/interviews", interviewRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // DEFAULT ERROR HANDLER
 app.use((err, req, res, next) => {
