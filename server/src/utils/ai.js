@@ -155,3 +155,68 @@ Return the result as structured data.
 
   return await summaryModel.invoke(prompt);
 };
+
+
+const resumeSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  summary: z.string(),
+
+  skills: z.array(z.string()),
+
+  experience: z.array(
+    z.object({
+      company: z.string(),
+      position: z.string(),
+      startDate: z.string(),
+      endDate: z.string(),
+      description: z.string(),
+    })
+  ),
+
+  education: z.array(
+    z.object({
+      institution: z.string(),
+      degree: z.string(),
+      field: z.string(),
+      startDate: z.string(),
+      endDate: z.string(),
+    })
+  ),
+
+  projects: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      technologies: z.array(z.string()),
+    })
+  ),
+
+  certifications: z.array(
+    z.object({
+      name: z.string(),
+      issuer: z.string(),
+      date: z.string(),
+    })
+  ),
+});
+
+const resumeModel = model.withStructuredOutput(resumeSchema);
+
+export const parseResumeWithAI = async (resumeText) => {
+  const prompt = `
+Extract structured information from this resume.
+
+Resume:
+${resumeText}
+
+Rules:
+- Only use information actually present in the resume.
+- Do not invent information.
+- If a field is missing, return an empty string or empty array.
+- Extract skills, experience, education, projects and certifications accurately.
+`;
+
+  return await resumeModel.invoke(prompt);
+};

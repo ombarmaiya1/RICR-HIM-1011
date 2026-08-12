@@ -3,6 +3,7 @@ import Resume from "./resume.model.js";
 import AppError from "../../utils/AppError.js";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
+import { parseResumeWithAI } from "../../utils/ai.js";
 
 const uploadResume = async (req, res, next) => {
   try {
@@ -34,10 +35,12 @@ const uploadResume = async (req, res, next) => {
       throw new AppError("Could not extract text from resume", 400);
     }
 
+    const parsedData = await parseResumeWithAI(extractedText);
+
     const resume = await Resume.create({
       userId: req.user.userId,
       fileName: req.file.originalname,
-      extractedText,
+      extractedText,parsedData,
     });
 
     res.status(201).json({
@@ -50,4 +53,40 @@ const uploadResume = async (req, res, next) => {
   }
 };
 
-export { uploadResume };
+
+const getResumes = async (req, res, next) => {
+  try {
+    const resumes = await Resume.find({
+      userId: req.user.userId,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      resumes,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getResume = async (req, res, next) => {
+  try {
+    const resume = await Resume.findOne({
+      _id: req.params.resumeId,
+      userId: req.user.userId,
+    });
+
+    if (!resume) {
+      throw new AppError("Resume not found", 404);
+    }
+
+    res.status(200).json({
+      success: true,
+      resume,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { uploadResume , getResumes, getResume };
