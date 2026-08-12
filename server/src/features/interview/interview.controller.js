@@ -65,6 +65,13 @@ const submitAnswer = async (req, res, next) => {
       throw new AppError("Question index and answer are required", 400);
     }
 
+    if (questionIndex === undefined || !answer?.trim()) {
+  throw new AppError(
+    "Question index and answer are required",
+    400
+  );
+}
+
     const interview = await Interview.findOne({
       _id: interviewId,
       userId: req.user.userId,
@@ -79,6 +86,8 @@ const submitAnswer = async (req, res, next) => {
     if (!question) {
       throw new AppError("Question not found", 404);
     }
+
+    
 
     const result = await evaluateAnswer(question.question, answer);
 
@@ -107,6 +116,8 @@ const completeInterview = async (req, res, next) => {
     if (!interview) {
       throw new AppError("Interview not found", 404);
     }
+
+    
 
     const unanswered = interview.questions.some((question) => !question.answer);
 

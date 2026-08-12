@@ -9,6 +9,13 @@ const createJob = async (req, res, next) => {
       throw new AppError("Title and description are required", 400);
     }
 
+    if (!title?.trim() || !description?.trim()) {
+  throw new AppError(
+    "Title and description are required",
+    400
+  );
+}
+
     const job = await Job.create({
       userId: req.user.userId,
       title,

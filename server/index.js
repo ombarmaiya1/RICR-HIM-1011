@@ -4,6 +4,7 @@ import { PORT } from "./src/config/config.js";
 import connectDB from "./src/config/db.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import multer from "multer";
 
 // SERVICES IMPORTS
 //
@@ -45,8 +46,27 @@ app.use("/api/analysis", analysisRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
-// DEFAULT ERROR HANDLER
+// DEFAULT ERROR HANDLERS
+
 app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+
+  next(err);
+});
+
+app.use((err, req, res, next) => {
+
+   if (err.name === "CastError") {
+    return res.status(400).json({
+      message: "Invalid ID",
+    });
+  }
+
+
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   console.error(err.stack);
