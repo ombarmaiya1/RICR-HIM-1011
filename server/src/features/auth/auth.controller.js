@@ -2,17 +2,16 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../user/user.model.js";
-import sendOTPEmail from "../services/email.service.js";
+import sendOTPEmail from "../../services/email.service.js";
 import OTP from "./otp.model.js";
-import { JWT_SECRET } from "../config/config.js";
+import { JWT_SECRET } from "../../config/config.js";
 
 const RegisterUser = async (req, res, next) => {
   try {
-    const { fullName, email,  password } = req.body;
+    const { fullName, email, password } = req.body;
     if (!fullName || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,11 +20,9 @@ const RegisterUser = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-
       fullName,
       email,
       password: hashedPassword,
-    
     });
 
     await newUser.save();
@@ -68,9 +65,7 @@ const LoginUser = async (req, res, next) => {
       maxAge: 60 * 60 * 24 * 1000,
     });
 
-    return res
-      .status(200)
-      .json({ message: `Login successful` });
+    return res.status(200).json({ message: `Login successful` });
   } catch (error) {
     error.statusCode = 500;
     error.message = "Error occurred while logging in";
@@ -85,27 +80,26 @@ const LogoutUser = (req, res) => {
 
 const SendOTP = async (req, res, next) => {
   try {
-   const { email } = req.body;
-   if (!email) {
-     return res.status(400).json({ message: "Email is required" });
-   }
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
 
-   const existingUser = await User.findOne({ email });
-   if (!existingUser) {
-     return res.status(400).json({ message: "User does not exist" });
-   }
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.status(400).json({ message: "User does not exist" });
+    }
 
     const newOTP = crypto.randomInt(100000, 999999).toString();
 
     const existingOTP = await OTP.findOneAndUpdate(
       { email },
       { otp: newOTP, expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
-    
+
     await sendOTPEmail(email, newOTP);
     return res.status(200).json({ message: "OTP sent successfully" });
-
   } catch (error) {
     error.statusCode = 500;
     error.message = "Error occurred while setting OTP";
@@ -131,7 +125,6 @@ const VerifyOTP = async (req, res, next) => {
 
     await existingOTP.deleteOne();
 
-
     const otpToken = jwt.sign({ email }, JWT_SECRET, {
       expiresIn: "10m",
     });
@@ -143,7 +136,7 @@ const VerifyOTP = async (req, res, next) => {
       maxAge: 10 * 60 * 1000,
     });
 
-    return res.status(200).json({ message: "OTP verified successfully" });  
+    return res.status(200).json({ message: "OTP verified successfully" });
   } catch (error) {
     error.statusCode = 500;
     error.message = "Error occurred while verifying OTP";
@@ -152,20 +145,18 @@ const VerifyOTP = async (req, res, next) => {
 };
 const ResetPassword = async (req, res, next) => {
   try {
-   
-
     const { password } = req.body;
 
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    const {email} = req.user;
+    const { email } = req.user;
 
     const existingUser = await User.findOne({ email });
-   
+
     if (!existingUser) {
-      return res.status(400).json({ message: "User does not exist"});
+      return res.status(400).json({ message: "User does not exist" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

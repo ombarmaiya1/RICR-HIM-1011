@@ -10,7 +10,11 @@ import cookieParser from "cookie-parser";
 //
 
 // ROUTES IMPORTS
-import authRoutes from "./src/auth/auth.routes.js";
+import authRoutes from "./src/features/auth/auth.routes.js";
+import userRoutes from "./src/features/user/user.routes.js";
+import resumeRoutes from "./src/features/resume/resume.routes.js";
+import jobRoutes from "./src/features/job/job.routes.js";
+import analysisRoutes from "./src/features/analysis/analysis.routes.js";
 
 //********************************************************************************* */
 
@@ -31,6 +35,10 @@ await connectDB();
 
 // ROUTES
 app.use("/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/resumes", resumeRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/analysis", analysisRoutes);
 
 // DEFAULT ERROR HANDLER
 app.use((err, req, res, next) => {
