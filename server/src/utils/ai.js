@@ -44,3 +44,43 @@ Do not invent experience or skills that are not present.
 
   return await structuredModel.invoke(prompt);
 };
+
+const interviewQuestionsSchema = z.object({
+  questions: z.array(
+    z.object({
+      question: z.string(),
+      type: z.enum(["technical", "behavioral"]),
+    })
+  ),
+});
+
+const questionModel = model.withStructuredOutput(
+  interviewQuestionsSchema
+);
+
+export const generateInterviewQuestions = async (
+  resumeText,
+  jobDescription
+) => {
+  const prompt = `
+You are an experienced technical interviewer.
+
+Generate 5 interview questions based on the candidate's resume
+and the target job description.
+
+Candidate Resume:
+${resumeText}
+
+Job Description:
+${jobDescription}
+
+Requirements:
+- Mix technical and behavioral questions.
+- Questions must be relevant to the target role.
+- Use the candidate's actual experience when possible.
+- Do not ask questions unrelated to the job.
+- Return exactly 5 questions.
+`;
+
+  return await questionModel.invoke(prompt);
+};

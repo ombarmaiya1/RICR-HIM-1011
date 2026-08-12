@@ -15,6 +15,7 @@ import userRoutes from "./src/features/user/user.routes.js";
 import resumeRoutes from "./src/features/resume/resume.routes.js";
 import jobRoutes from "./src/features/job/job.routes.js";
 import analysisRoutes from "./src/features/analysis/analysis.routes.js";
+import interviewRoutes from "./src/features/interview/interview.routes.js";
 
 //********************************************************************************* */
 
@@ -31,6 +32,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 await connectDB();
 
 // ROUTES
@@ -39,6 +41,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/analysis", analysisRoutes);
+app.use("/api/interviews", interviewRoutes);
 
 // DEFAULT ERROR HANDLER
 app.use((err, req, res, next) => {
