@@ -55,4 +55,44 @@ const analyzeResume = async (req, res, next) => {
   }
 };
 
-export { analyzeResume };
+const getAnalyses = async (req, res, next) => {
+  try {
+    const analyses = await Analysis.find({
+      userId: req.user.userId,
+    })
+      .populate("resumeId", "fileName")
+      .populate("jobId", "title")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      analyses,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAnalysis = async (req, res, next) => {
+  try {
+    const analysis = await Analysis.findOne({
+      _id: req.params.analysisId,
+      userId: req.user.userId,
+    })
+      .populate("resumeId")
+      .populate("jobId");
+
+    if (!analysis) {
+      throw new AppError("Analysis not found", 404);
+    }
+
+    res.status(200).json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { analyzeResume, getAnalyses, getAnalysis };
