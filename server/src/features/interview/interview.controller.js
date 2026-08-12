@@ -134,4 +134,44 @@ const completeInterview = async (req, res, next) => {
   }
 };
 
-export { startInterview, submitAnswer , completeInterview };
+const getInterviews = async (req, res, next) => {
+  try {
+    const interviews = await Interview.find({
+      userId: req.user.userId,
+    })
+      .populate("resumeId", "fileName")
+      .populate("jobId", "title")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      interviews,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getInterview = async (req, res, next) => {
+  try {
+    const interview = await Interview.findOne({
+      _id: req.params.interviewId,
+      userId: req.user.userId,
+    })
+      .populate("resumeId")
+      .populate("jobId");
+
+    if (!interview) {
+      throw new AppError("Interview not found", 404);
+    }
+
+    res.status(200).json({
+      success: true,
+      interview,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { startInterview, submitAnswer , completeInterview  , getInterviews, getInterview };

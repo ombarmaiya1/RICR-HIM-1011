@@ -11,4 +11,8 @@ router.post(
   IsAuthenticated,
   completeInterview
 );
+
+outer.get("/", IsAuthenticated, getInterviews);
+
+router.get("/:interviewId", IsAuthenticated, getInterview);
 export default router;
