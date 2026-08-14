@@ -244,6 +244,18 @@ export default function ResumesPage({ onLogout, onNavigate }) {
 
                         {/* Actions */}
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          {doc.fileUrl && (
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 text-xs bg-[#e8e8e8] border border-[#cfc4c5] hover:border-black text-black font-semibold uppercase tracking-wider flex items-center gap-1 transition-colors"
+                              title="Open Cloudinary Document"
+                            >
+                              <span className="material-symbols-outlined text-xs">open_in_new</span>
+                              PDF
+                            </a>
+                          )}
                           {doc.parsedData && (
                             <button
                               type="button"

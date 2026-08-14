@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../api/axios'
 
 /**
  * Hook to manage user resumes:
  * - GET /api/resumes (fetch all uploaded resumes)
- * - POST /api/resumes/upload (upload PDF / DOCX resume)
+ * - POST /api/resumes/upload (upload PDF / DOCX resume to Cloudinary)
+ * - DELETE /api/resumes/:resumeId (delete resume and Cloudinary asset)
  */
 export default function useResumes() {
   const [resumes, setResumes] = useState([])
@@ -12,7 +13,7 @@ export default function useResumes() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
-  const fetchResumes = async () => {
+  const fetchResumes = useCallback(async () => {
     try {
       setLoading(true)
       const res = await api.get('/resumes')
@@ -23,11 +24,11 @@ export default function useResumes() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchResumes()
-  }, [])
+  }, [fetchResumes])
 
   const uploadResume = async (file) => {
     if (!file) {
@@ -61,8 +62,15 @@ export default function useResumes() {
     }
   }
 
-  const deleteResumeLocal = (id) => {
-    setResumes((prev) => prev.filter((r) => r._id !== id && r.id !== id))
+  const deleteResume = async (id) => {
+    try {
+      await api.delete(`/resumes/${id}`)
+      setResumes((prev) => prev.filter((r) => r._id !== id && r.id !== id))
+      return true
+    } catch {
+      setError('Failed to delete resume.')
+      return false
+    }
   }
 
   return {
@@ -71,7 +79,8 @@ export default function useResumes() {
     uploading,
     error,
     uploadResume,
-    deleteResumeLocal,
+    deleteResume,
+    deleteResumeLocal: deleteResume,
     refetch: fetchResumes,
   }
 }

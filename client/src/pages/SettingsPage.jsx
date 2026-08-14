@@ -14,10 +14,13 @@ export default function SettingsPage({ onLogout, onNavigate }) {
   const { user, refetchUser } = useAuth()
   const {
     loading,
+    uploadingAvatar,
     error,
     successMessage,
     setError,
     setSuccessMessage,
+    uploadAvatar,
+    removeAvatar,
     updateProfile,
     sendPasswordChangeOTP,
     changePasswordWithOTP,
@@ -206,16 +209,57 @@ export default function SettingsPage({ onLogout, onNavigate }) {
               </h2>
 
               <form onSubmit={handleSaveProfile} className="bg-white border border-[#cfc4c5] p-6 flex flex-col gap-6">
-                {/* Visual Avatar Row */}
+                {/* Visual Avatar Row with Cloudinary Upload */}
                 <div className="flex items-center gap-6 pb-6 border-b border-[#cfc4c5]">
-                  <div className="w-20 h-20 bg-[#e8e8e8] border border-black flex items-center justify-center text-black">
-                    <span className="material-symbols-outlined text-4xl">account_circle</span>
+                  <div className="w-20 h-20 bg-[#e8e8e8] border border-black flex items-center justify-center text-black overflow-hidden relative">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-4xl">account_circle</span>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-base font-bold text-black uppercase tracking-wider">
-                      {user?.fullName || 'User Profile'}
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <div className="text-base font-bold text-black uppercase tracking-wider">
+                        {user?.fullName || 'User Profile'}
+                      </div>
+                      <div className="text-xs text-[#5e5e5e] mt-0.5">{user?.email}</div>
                     </div>
-                    <div className="text-xs text-[#5e5e5e] mt-0.5">{user?.email}</div>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer px-4 py-2 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors">
+                        {uploadingAvatar ? 'Uploading…' : 'Change Picture'}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              await uploadAvatar(file, () => {
+                                if (refetchUser) refetchUser()
+                              })
+                            }
+                          }}
+                        />
+                      </label>
+                      {user?.avatar && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await removeAvatar(() => {
+                              if (refetchUser) refetchUser()
+                            })
+                          }}
+                          className="px-3 py-2 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider hover:border-black"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

@@ -4,6 +4,7 @@ import User from "./user.model.js";
 import OTP from "../auth/otp.model.js";
 import SendOTPEmail from "../../services/email.service.js";
 import AppError from "../../utils/AppError.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary.js";
 
 /**
  * Get current authenticated user profile
@@ -20,6 +21,92 @@ const getMe = async (req, res, next) => {
     res.status(200).json({
       success: true,
       user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload & update profile image avatar to Cloudinary
+ * POST /api/users/avatar
+ */
+const uploadUserAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError("Avatar image file is required", 400);
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    // Clean up old avatar in Cloudinary if exists
+    if (user.avatarPublicId) {
+      try {
+        await deleteFromCloudinary(user.avatarPublicId, { resource_type: "image" });
+      } catch (err) {
+        console.warn("Could not delete old avatar:", err.message);
+      }
+    }
+
+    // Upload to Cloudinary with smart face-crop optimization
+    const uploadResult = await uploadToCloudinary(req.file.buffer, {
+      folder: "ai_career_pro/avatars",
+      resource_type: "image",
+      transformation: [
+        { width: 400, height: 400, crop: "fill", gravity: "face" },
+        { quality: "auto" },
+      ],
+    });
+
+    user.avatar = uploadResult.secure_url || uploadResult.url;
+    user.avatarPublicId = uploadResult.public_id;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image updated successfully",
+      avatar: user.avatar,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Remove profile image avatar
+ * DELETE /api/users/avatar
+ */
+const deleteUserAvatar = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    if (user.avatarPublicId) {
+      try {
+        await deleteFromCloudinary(user.avatarPublicId, { resource_type: "image" });
+      } catch (err) {
+        console.warn("Could not delete avatar from Cloudinary:", err.message);
+      }
+    }
+
+    user.avatar = "";
+    user.avatarPublicId = "";
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image removed successfully",
     });
   } catch (error) {
     next(error);
@@ -82,6 +169,7 @@ const updateProfile = async (req, res, next) => {
         _id: user._id,
         fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -174,6 +262,8 @@ const changePasswordWithOTP = async (req, res, next) => {
 
 export {
   getMe,
+  uploadUserAvatar,
+  deleteUserAvatar,
   updateProfile,
   sendPasswordChangeOTP,
   changePasswordWithOTP,
