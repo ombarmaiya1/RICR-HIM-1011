@@ -27,6 +27,7 @@ function ProtectedRoute({ children }) {
 /** Shared nav + logout handler used by all dashboard pages */
 function DashboardShell({ Page }) {
   const navigate = useNavigate()
+  const { logout: authLogout } = useAuth()
 
   const handleNavigate = (tab) => {
     const map = {
@@ -39,7 +40,9 @@ function DashboardShell({ Page }) {
     if (map[tab]) navigate(map[tab])
   }
 
-  const logout = () => navigate('/login')
+  const logout = () => {
+    authLogout(() => navigate('/login'))
+  }
 
   return (
     <ProtectedRoute>

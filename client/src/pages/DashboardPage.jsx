@@ -1,20 +1,43 @@
 import { useState } from 'react'
+import useAnalysis from '../frontend_logic/useAnalysis'
+import useResumes from '../frontend_logic/useResumes'
+import useJobs from '../frontend_logic/useJobs'
 
 /**
- * DashboardPage — Faithful reproduction of Stitch "Analysis Dashboard" screen.
+ * DashboardPage (Analysis) — Match Scoring & Skill Gap Analysis
+ * - Connected to backend /api/analysis
  * - Sharp architectural minimalist theme (0px radius, 1px/2px borders)
- * - Top Navigation Bar (Brand, Links, Search, User/Logout controls)
- * - Main Analysis Section: Job Title, Match Score (85%), Analysis Summary
- * - Skills Bento Grid (Matched Skills & Missing Skills with dashed/line-through)
- * - Actionable Suggestions list
+ * - Interactive Resume + Job selector to trigger real-time AI skill match
+ * - Match score circle / counter, Matched Skills, Missing Skills, Actionable Suggestions
+ * - Past analyses switcher
  * - Footer
  */
 export default function DashboardPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Analysis')
+  const { analyses, currentAnalysis, setCurrentAnalysis, analyzing, error: analysisError, runAnalysis } = useAnalysis()
+  const { resumes } = useResumes()
+  const { jobs } = useJobs()
+
+  const [selectedResumeId, setSelectedResumeId] = useState('')
+  const [selectedJobId, setSelectedJobId] = useState('')
+  const [showNewAnalysisModal, setShowNewAnalysisModal] = useState(false)
 
   const navItems = ['Dashboard', 'Resumes', 'Jobs', 'Analysis', 'Interviews']
 
-  const matchedSkills = [
+  const handleTabClick = (item) => {
+    setActiveTab(item)
+    if (onNavigate) onNavigate(item)
+  }
+
+  const handleRunAnalysis = async (e) => {
+    e.preventDefault()
+    const res = await runAnalysis(selectedResumeId, selectedJobId)
+    if (res) {
+      setShowNewAnalysisModal(false)
+    }
+  }
+
+  const defaultMatchedSkills = [
     'React.js',
     'TypeScript',
     'Tailwind CSS',
@@ -24,9 +47,9 @@ export default function DashboardPage({ onLogout, onNavigate }) {
     'Jest Testing',
   ]
 
-  const missingSkills = ['AWS CI/CD', 'GraphQL', 'Redux Toolkit', 'Docker']
+  const defaultMissingSkills = ['AWS CI/CD', 'GraphQL', 'Redux Toolkit', 'Docker']
 
-  const suggestions = [
+  const defaultSuggestions = [
     {
       title: 'Highlight State Management Alternatives',
       desc: 'While missing Redux Toolkit, heavily emphasize your documented experience with Context API and Zustand to prove conceptual proficiency in complex state management.',
@@ -41,13 +64,34 @@ export default function DashboardPage({ onLogout, onNavigate }) {
     },
   ]
 
+  const activeMatchScore = currentAnalysis ? currentAnalysis.matchScore : 85
+  const activeMatchedSkills = currentAnalysis?.matchedSkills?.length ? currentAnalysis.matchedSkills : defaultMatchedSkills
+  const activeMissingSkills = currentAnalysis?.missingSkills?.length ? currentAnalysis.missingSkills : defaultMissingSkills
+  const activeSuggestions = currentAnalysis?.suggestions?.length
+    ? currentAnalysis.suggestions.map((s, idx) => ({
+        title: `Strategic Recommendation ${idx + 1}`,
+        desc: s,
+      }))
+    : defaultSuggestions
+  const activeSummary =
+    currentAnalysis?.summary ||
+    'Your profile demonstrates a strong foundational alignment with the core requirements of this role. Extensive experience with modern JavaScript ecosystems anchors your match score. Immediate remediation of highlighted missing skills will significantly elevate application standing.'
+
+  const activeTitle = currentAnalysis?.jobId?.title || 'Senior Frontend Developer - Acme Corp'
+  const activeSubtitle = currentAnalysis?.resumeId?.fileName
+    ? `Profile: ${currentAnalysis.resumeId.fileName} vs. Job Description Analysis`
+    : 'Profile vs. Job Description Analysis'
+
   return (
     <div className="bg-[#f9f9f9] text-[#1b1b1b] min-h-screen flex flex-col font-sans">
       {/* Top Navbar */}
       <header className="w-full sticky top-0 bg-[#f9f9f9] border-b-2 border-black z-50">
         <div className="flex justify-between items-center px-6 md:px-10 py-4 max-w-[1280px] mx-auto">
           {/* Brand */}
-          <div className="text-xl font-bold text-black tracking-tighter uppercase font-sans">
+          <div
+            onClick={() => handleTabClick('Dashboard')}
+            className="text-xl font-bold text-black tracking-tighter uppercase font-sans cursor-pointer"
+          >
             AI CAREER PRO
           </div>
 
@@ -57,10 +101,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
               <button
                 key={item}
                 type="button"
-                onClick={() => {
-                  setActiveTab(item)
-                  if (onNavigate) onNavigate(item)
-                }}
+                onClick={() => handleTabClick(item)}
                 className={`text-sm font-semibold tracking-wide transition-colors cursor-pointer ${
                   activeTab === item
                     ? 'text-black border-b-2 border-black pb-1'
@@ -106,11 +147,40 @@ export default function DashboardPage({ onLogout, onNavigate }) {
       {/* Main Content */}
       <main className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-10 py-12">
         {/* Header Section */}
-        <div className="mb-12 border-b border-[#cfc4c5] pb-6">
-          <h1 className="text-2xl md:text-[32px] font-semibold text-black mb-2 leading-tight">
-            Senior Frontend Developer - Acme Corp
-          </h1>
-          <p className="text-base text-[#5e5e5e]">Profile vs. Job Description Analysis</p>
+        <div className="mb-12 border-b border-[#cfc4c5] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-[32px] font-semibold text-black mb-2 leading-tight">
+              {activeTitle}
+            </h1>
+            <p className="text-base text-[#5e5e5e]">{activeSubtitle}</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {analyses.length > 1 && (
+              <select
+                value={currentAnalysis?._id || ''}
+                onChange={(e) => {
+                  const target = analyses.find((a) => a._id === e.target.value)
+                  if (target) setCurrentAnalysis(target)
+                }}
+                className="px-3 py-2 bg-white border border-[#cfc4c5] text-xs font-semibold text-black focus:outline-none focus:border-black"
+              >
+                {analyses.map((a) => (
+                  <option key={a._id} value={a._id}>
+                    {a.jobId?.title || 'Target Job'} ({a.matchScore}%)
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowNewAnalysisModal(true)}
+              className="px-4 py-2 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              New Match Analysis
+            </button>
+          </div>
         </div>
 
         {/* Dashboard Grid */}
@@ -122,8 +192,12 @@ export default function DashboardPage({ onLogout, onNavigate }) {
               <div className="text-sm font-semibold text-[#5e5e5e] tracking-widest uppercase mb-4">
                 Overall Match Score
               </div>
-              <div className="text-[72px] font-bold leading-none text-black mb-2">85%</div>
-              <div className="text-base text-[#5e5e5e] mt-4">High Probability of Progression</div>
+              <div className="text-[72px] font-bold leading-none text-black mb-2">
+                {activeMatchScore}%
+              </div>
+              <div className="text-base text-[#5e5e5e] mt-4">
+                {activeMatchScore >= 80 ? 'High Probability of Progression' : 'Moderate Alignment — Focus on Gap Areas'}
+              </div>
             </div>
 
             {/* Analysis Summary */}
@@ -132,12 +206,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                 Analysis Summary
               </h2>
               <p className="text-base text-[#5e5e5e] leading-relaxed">
-                Your profile demonstrates a strong foundational alignment with the core
-                requirements of this role. Extensive experience with React and modern JavaScript
-                ecosystems anchors your high match score. However, critical gaps in cloud
-                infrastructure deployment and specific state management paradigms slightly reduce
-                absolute fit. Immediate remediation of highlighted missing skills will significantly
-                elevate application standing.
+                {activeSummary}
               </p>
             </div>
           </div>
@@ -153,7 +222,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                   <h3 className="text-xl font-semibold text-black">Matched Skills</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {matchedSkills.map((skill) => (
+                  {activeMatchedSkills.map((skill) => (
                     <span
                       key={skill}
                       className="px-3 py-1.5 bg-[#e8e8e8] border border-[#cfc4c5] text-black text-xs font-semibold uppercase tracking-wider"
@@ -171,7 +240,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                   <h3 className="text-xl font-semibold text-black">Missing Skills</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {missingSkills.map((skill) => (
+                  {activeMissingSkills.map((skill) => (
                     <span
                       key={skill}
                       className="px-3 py-1.5 bg-[#ffffff] border border-[#7e7576] border-dashed text-[#5e5e5e] text-xs font-semibold uppercase tracking-wider line-through"
@@ -190,11 +259,11 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                 Targeted interventions to improve match score
               </p>
               <ul className="flex flex-col">
-                {suggestions.map((item, idx) => (
+                {activeSuggestions.map((item, idx) => (
                   <li
-                    key={item.title}
+                    key={idx}
                     className={`py-4 flex items-start gap-4 border-t border-[#cfc4c5] ${
-                      idx === suggestions.length - 1 ? 'border-b' : ''
+                      idx === activeSuggestions.length - 1 ? 'border-b' : ''
                     }`}
                   >
                     <span className="material-symbols-outlined text-black mt-0.5">
@@ -210,6 +279,97 @@ export default function DashboardPage({ onLogout, onNavigate }) {
             </div>
           </div>
         </div>
+
+        {/* Modal: Create New Match Analysis */}
+        {showNewAnalysisModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f9f9f9] border-2 border-black max-w-lg w-full p-6 flex flex-col gap-6">
+              <div className="flex justify-between items-center border-b border-[#cfc4c5] pb-3">
+                <h3 className="text-lg font-semibold text-black">Run New Match Analysis</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowNewAnalysisModal(false)}
+                  className="p-1 text-[#5e5e5e] hover:text-black"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <form onSubmit={handleRunAnalysis} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black">
+                    Select Active Resume
+                  </label>
+                  <select
+                    value={selectedResumeId}
+                    onChange={(e) => setSelectedResumeId(e.target.value)}
+                    required
+                    className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
+                  >
+                    <option value="">-- Choose Resume Document --</option>
+                    {resumes.map((r) => (
+                      <option key={r._id || r.id} value={r._id || r.id}>
+                        {r.fileName || r.name}
+                      </option>
+                    ))}
+                  </select>
+                  {resumes.length === 0 && (
+                    <span className="text-[11px] text-[#ba1a1a]">
+                      No resumes uploaded. Please upload a resume first.
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black">
+                    Select Target Job
+                  </label>
+                  <select
+                    value={selectedJobId}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    required
+                    className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
+                  >
+                    <option value="">-- Choose Target Job --</option>
+                    {jobs.map((j) => (
+                      <option key={j._id || j.id} value={j._id || j.id}>
+                        {j.title}
+                      </option>
+                    ))}
+                  </select>
+                  {jobs.length === 0 && (
+                    <span className="text-[11px] text-[#ba1a1a]">
+                      No saved jobs. Please save a job in Job Management first.
+                    </span>
+                  )}
+                </div>
+
+                {analysisError && (
+                  <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
+                    {analysisError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t border-[#cfc4c5]">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewAnalysisModal(false)}
+                    className="px-4 py-3 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={analyzing || resumes.length === 0 || jobs.length === 0}
+                    className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-wider py-3 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
+                  >
+                    {analyzing ? 'Evaluating Alignment with AI…' : 'RUN ANALYSIS'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
