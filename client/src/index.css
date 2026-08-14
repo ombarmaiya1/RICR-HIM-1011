@@ -1,37 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: light --default;
+}
 
-@plugin "daisyui/theme" {
-  name: "architect";
-  default: true;
-  prefersdark: false;
+:root,
+[data-theme="architect"] {
   color-scheme: light;
 
-  /* Body = #f9f9f9 (matches Stitch `background`), card = #f9f9f9 (matches `surface`) */
-  --color-base-100: oklch(98% 0 0);      /* #f9f9f9 — surface / card */
-  --color-base-200: oklch(95% 0 0);      /* #eeeeee — surface-container */
-  --color-base-300: oklch(89% 0 0);      /* #e2e2e2 — outline-variant */
-  --color-base-content: oklch(11% 0 0);  /* #1b1b1b — on-surface */
+  /* Base & surface palette */
+  --color-base-100: #f9f9f9;
+  --color-base-200: #eeeeee;
+  --color-base-300: #e2e2e2;
+  --color-base-content: #1b1b1b;
 
-  --color-primary: oklch(0% 0 0);        /* #000000 */
-  --color-primary-content: oklch(100% 0 0); /* #ffffff */
-  --color-secondary: oklch(37% 0 0);     /* #5e5e5e — secondary */
-  --color-secondary-content: oklch(100% 0 0);
-  --color-accent: oklch(37% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(20% 0 0);
-  --color-neutral-content: oklch(95% 0 0);
-  --color-info: oklch(60% 0.18 220);
-  --color-info-content: oklch(98% 0 0);
-  --color-success: oklch(55% 0.18 140);
-  --color-success-content: oklch(98% 0 0);
-  --color-warning: oklch(75% 0.18 80);
-  --color-warning-content: oklch(15% 0 0);
-  --color-error: oklch(50% 0.22 30);
-  --color-error-content: oklch(98% 0 0);
+  --color-primary: #000000;
+  --color-primary-content: #ffffff;
+  --color-secondary: #5e5e5e;
+  --color-secondary-content: #ffffff;
+  --color-accent: #5e5e5e;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1b1b1b;
+  --color-neutral-content: #f9f9f9;
 
-  /* 0px radius everywhere — "Sharp" design language from Stitch spec */
+  --color-info: #2563eb;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  /* 0px radius architectural design language */
   --radius-selector: 0rem;
   --radius-field: 0rem;
   --radius-box: 0rem;
@@ -39,24 +40,23 @@
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
-  --depth: 0;
-  --noise: 0;
 }
 
-
-body {
-  font-family: 'Inter', sans-serif;
-  /* Black page background — matches the Stitch screenshot */
+html, body {
+  color-scheme: light;
   background-color: #000000;
   color: #1b1b1b;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
-/* The white content wrapper that sits on the black body */
+/* White content surface wrapper */
 .page-surface {
   background-color: #f9f9f9;
 }
 
-/* Minimal bottom-border-only input — exact Stitch spec */
+/* Minimal bottom-border input */
 .minimal-input {
   width: 100%;
   border: none;
@@ -79,11 +79,12 @@ body {
   color: #848484;
 }
 
-/* Fade-in */
+/* Fade-in animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
 .fade-up {
   animation: fadeUp 0.3s ease-out both;
 }
