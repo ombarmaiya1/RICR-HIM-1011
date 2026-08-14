@@ -1,30 +1,23 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
+import useRegister from '../frontend_logic/useRegister'
 
 /**
  * Register page — same Monolith Career System theme as LoginPage.
  * Same exact styling tokens from Stitch: 14px/600/uppercase labels,
  * minimal-input, solid black btn, 0px radius, Inter font.
  */
-export default function RegisterPage({ onGoLogin, onRegisterSuccess }) {
+export default function RegisterPage() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
-  const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
+  const { loading, error, register } = useRegister()
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (form.password !== form.confirm) {
-      setError('Passwords do not match.')
-      return
-    }
-    setError('')
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      if (onRegisterSuccess) onRegisterSuccess()
-    }, 600) // ponytail: wire to backend
+    register(form, () => navigate('/login'))
   }
 
   const fields = [
@@ -103,7 +96,7 @@ export default function RegisterPage({ onGoLogin, onRegisterSuccess }) {
         </p>
         <button
           type="button"
-          onClick={onGoLogin}
+          onClick={() => navigate('/login')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: '#000000', textDecoration: 'underline',
