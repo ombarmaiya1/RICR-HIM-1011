@@ -6,7 +6,7 @@ import UserDashboardPage from './pages/UserDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import MockInterviewPage from './pages/MockInterviewPage'
 import ResumesPage from './pages/ResumesPage'
-import JobsPage from './pages/JobsPage'
+import JobSuggestionsPage from './pages/JobSuggestionsPage'
 import SettingsPage from './pages/SettingsPage'
 import useAuth from './frontend_logic/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -71,7 +71,8 @@ export default function App() {
       <Route path="/analysis"   element={<DashboardShell Page={DashboardPage} />} />
       <Route path="/interviews" element={<DashboardShell Page={MockInterviewPage} />} />
       <Route path="/resumes"    element={<DashboardShell Page={ResumesPage} />} />
-      <Route path="/jobs"       element={<DashboardShell Page={JobsPage} />} />
+      <Route path="/jobs"       element={<DashboardShell Page={JobSuggestionsPage} />} />
+      <Route path="/job-suggestions" element={<DashboardShell Page={JobSuggestionsPage} />} />
       <Route path="/settings"   element={<DashboardShell Page={SettingsPage} />} />
 
       {/* Default */}
@@ -79,3 +80,4 @@ export default function App() {
     </Routes>
   )
 }
+

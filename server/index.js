@@ -18,6 +18,9 @@ import jobRoutes from "./src/features/job/job.routes.js";
 import analysisRoutes from "./src/features/analysis/analysis.routes.js";
 import interviewRoutes from "./src/features/interview/interview.routes.js";
 import dashboardRoutes from "./src/features/dashboard/dashboard.routes.js";
+import atsRoutes from "./src/features/ats/ats.routes.js";
+import jobSuggestionRoutes from "./src/features/jobSuggestion/jobSuggestion.routes.js";
+
 
 //********************************************************************************* */
 
@@ -26,7 +29,7 @@ import dashboardRoutes from "./src/features/dashboard/dashboard.routes.js";
 const app = express();
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "https://ricr-him-1011-4.onrender.com",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
   }),
 );
@@ -46,6 +49,11 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/analysis", analysisRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/ats", atsRoutes);
+app.use(
+  "/api/job-suggestions",
+  jobSuggestionRoutes
+);
 
 // DEFAULT ERROR HANDLERS
 
@@ -61,12 +69,12 @@ app.use((err, req, res, next) => {
 
 app.use((err, req, res, next) => {
 
-   if (err.name === "CastError") {
+  if (err.name === "CastError") {
     return res.status(400).json({
       message: "Invalid ID",
     });
   }
- 
+
   console.log(err)
 
   const statusCode = err.statusCode || 500;
