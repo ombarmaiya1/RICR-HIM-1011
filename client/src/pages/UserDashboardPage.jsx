@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useDashboard from '../frontend_logic/useDashboard'
+import Navbar from '../components/Navbar'
 
 /**
  * UserDashboardPage — Recreates the Stitch "User Dashboard" overview UI/UX
@@ -23,8 +24,6 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
     loading,
   } = useDashboard()
 
-  const navItems = ['Dashboard', 'Resumes', 'Jobs', 'Analysis', 'Interviews']
-
   const handleTabClick = (item) => {
     setActiveTab(item)
     if (onNavigate) onNavigate(item)
@@ -34,62 +33,12 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
 
   return (
     <div className="bg-[#f9f9f9] text-[#1b1b1b] min-h-screen flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="w-full sticky top-0 bg-[#f9f9f9] border-b-2 border-black z-50">
-        <div className="flex justify-between items-center px-6 md:px-10 py-4 max-w-[1280px] mx-auto">
-          {/* Brand */}
-          <div
-            onClick={() => handleTabClick('Dashboard')}
-            className="text-xl font-bold text-black tracking-tighter uppercase font-sans cursor-pointer"
-          >
-            AI CAREER PRO
-          </div>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex gap-8 items-center">
-            {navItems.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => handleTabClick(item)}
-                className={`text-sm font-semibold tracking-wide transition-colors cursor-pointer ${
-                  activeTab === item
-                    ? 'text-black border-b-2 border-black pb-1'
-                    : 'text-[#5e5e5e] hover:text-black'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => handleTabClick('Settings')}
-              className="flex items-center gap-2 text-xs font-semibold text-black hover:opacity-75 transition-opacity cursor-pointer"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="material-symbols-outlined text-xl text-[#5e5e5e]">account_circle</span>
-                )}
-              </div>
-              <span className="hidden md:inline">{user?.fullName || 'My Account'}</span>
-            </button>
-            <button
-              type="button"
-              aria-label="Logout"
-              onClick={onLogout}
-              className="text-[#5e5e5e] hover:text-black transition-colors flex items-center justify-center p-1"
-            >
-              <span className="material-symbols-outlined">logout</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar
+        activeTab={activeTab}
+        onNavigate={handleTabClick}
+        onLogout={onLogout}
+        showSearch={false}
+      />
 
       {/* Main Content */}
       <main className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-10 py-10 flex flex-col gap-8">
