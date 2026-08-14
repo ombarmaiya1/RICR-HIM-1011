@@ -41,7 +41,6 @@ app.use(cookieParser());
 await connectDB();
 
 // ROUTES
-
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/resumes", resumeRoutes);
@@ -50,39 +49,9 @@ app.use("/api/analysis", analysisRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ats", atsRoutes);
-app.use(
-  "/api/job-suggestions",
-  jobSuggestionRoutes
-);
+app.use("/api/job-suggestions", jobSuggestionRoutes);
 
-// DEFAULT ERROR HANDLERS
-
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({
-      message: err.message,
-    });
-  }
-
-  next(err);
-});
-
-app.use((err, req, res, _next) => {
-
-  if (err.name === "CastError") {
-    return res.status(400).json({
-      message: "Invalid ID",
-    });
-  }
-
-  console.log(err)
-
-  const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error(err.stack);
-  res.status(statusCode).json({ message });
-});
-
+// SERVE STATIC CLIENT BUILD IN PRODUCTION & SPA FALLBACK
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -102,6 +71,29 @@ if (fs.existsSync(clientDistPath)) {
     res.json("API Server is running.");
   });
 }
+
+// DEFAULT ERROR HANDLERS
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+  next(err);
+});
+
+app.use((err, req, res, _next) => {
+  if (err.name === "CastError") {
+    return res.status(400).json({
+      message: "Invalid ID",
+    });
+  }
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  console.error(err.stack);
+  res.status(statusCode).json({ message });
+});
 
 app.listen(PORT, () => {
   console.log(`\nServer Started at Port : ${PORT}`);
