@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
+import useLogin from '../frontend_logic/useLogin'
 
 /**
  * Login page — exact Stitch "Authentication" screen reproduction.
@@ -13,19 +15,16 @@ import AuthLayout from '../components/AuthLayout'
  *   - BLACK solid btn full width "LOGIN"
  *   - Divider + "New to Architect AI?" + "Create an Account" link
  */
-export default function LoginPage({ onGoRegister, onLoginSuccess }) {
+export default function LoginPage() {
+  const navigate = useNavigate()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
-  const [loading, setLoading]   = useState(false)
+  const { loading, error, login } = useLogin()
 
   function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      if (onLoginSuccess) onLoginSuccess()
-    }, 600) // ponytail: wire to backend
+    login({ email, password }, () => navigate('/dashboard'))
   }
 
   return (
@@ -102,6 +101,13 @@ export default function LoginPage({ onGoRegister, onLoginSuccess }) {
           </button>
         </div>
 
+        {/* Inline error */}
+        {error && (
+          <p style={{ fontSize: '12px', color: '#ba1a1a', fontWeight: 600, marginTop: '-8px' }}>
+            {error}
+          </p>
+        )}
+
         {/* Primary CTA */}
         <button
           type="submit"
@@ -133,7 +139,7 @@ export default function LoginPage({ onGoRegister, onLoginSuccess }) {
         </p>
         <button
           type="button"
-          onClick={onGoRegister}
+          onClick={() => navigate('/register')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: '#000000', textDecoration: 'underline',

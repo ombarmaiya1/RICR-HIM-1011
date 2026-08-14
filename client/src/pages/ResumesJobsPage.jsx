@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import useJobs from '../frontend_logic/useJobs'
 
 /**
  * ResumesJobsPage — Faithful reproduction of Stitch "Job & Resume Management" (Context & Assets) screen.
@@ -10,15 +11,11 @@ import { useState } from 'react'
  */
 export default function ResumesJobsPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Resumes')
-  const [jobTitle, setJobTitle] = useState('Senior Software Engineer')
+  const [jobTitle, setJobTitle] = useState('')
   const [jobDescription, setJobDescription] = useState('')
-  const [locked, setLocked] = useState(false)
+  const { jobs, saving, error: jobError, saveJob } = useJobs()
 
-  const [documents, setDocuments] = useState([
-    { id: 1, name: 'J_Doe_Resume_2024_Tech.pdf', date: 'Extracted: Oct 24, 2024' },
-    { id: 2, name: 'JD_Management_Consulting_V2.docx', date: 'Extracted: Sep 12, 2024' },
-    { id: 3, name: 'Base_Resume_Architecture.pdf', date: 'Extracted: Jan 05, 2024' },
-  ])
+  const [documents, setDocuments] = useState([])
 
   const navItems = ['Dashboard', 'Resumes', 'Jobs', 'Analysis', 'Interviews']
 
@@ -47,10 +44,9 @@ export default function ResumesJobsPage({ onLogout, onNavigate }) {
     }
   }
 
-  const handleLockContext = (e) => {
+  const handleLockContext = async (e) => {
     e.preventDefault()
-    setLocked(true)
-    setTimeout(() => setLocked(false), 1200)
+    await saveJob(jobTitle, jobDescription)
   }
 
   return (
@@ -164,13 +160,35 @@ export default function ResumesJobsPage({ onLogout, onNavigate }) {
                 ></textarea>
               </div>
 
+                {jobError && (
+                  <p style={{ fontSize: '12px', color: '#ba1a1a', fontWeight: 600 }}>{jobError}</p>
+                )}
+
               <button
                 type="submit"
                 className="w-full bg-black text-white text-xs font-semibold uppercase tracking-widest py-4 hover:bg-[#1b1b1b] transition-colors"
               >
-                {locked ? 'CONTEXT LOCKED ✓' : 'LOCK CONTEXT'}
+                {saving ? 'SAVING...' : 'SAVE JOB'}
               </button>
             </form>
+
+            {/* Saved jobs list */}
+            {jobs.length > 0 && (
+              <div className="mt-4 flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-[#5e5e5e]">Saved Jobs</p>
+                {jobs.map((j) => (
+                  <button
+                    key={j._id}
+                    type="button"
+                    onClick={() => { setJobTitle(j.title); setJobDescription(j.description) }}
+                    className="text-left border border-[#cfc4c5] p-3 hover:border-black transition-colors"
+                  >
+                    <span className="text-sm font-semibold text-black">{j.title}</span>
+                    <span className="block text-xs text-[#5e5e5e] mt-0.5 truncate">{j.description.slice(0, 80)}…</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Right Column: Resume Upload & Document Repository */}

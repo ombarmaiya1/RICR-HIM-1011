@@ -1,76 +1,71 @@
-import { useState } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import UserDashboardPage from './pages/UserDashboardPage'
 import DashboardPage from './pages/DashboardPage'
 import MockInterviewPage from './pages/MockInterviewPage'
 import ResumesJobsPage from './pages/ResumesJobsPage'
+import useAuth from './frontend_logic/useAuth'
+import { useNavigate } from 'react-router-dom'
 
-export default function App() {
-  // Default to User Dashboard after login
-  const [page, setPage] = useState('user-dashboard')
+/** Redirects to /login if the session check fails */
+function ProtectedRoute({ children }) {
+  const { authed, checking } = useAuth()
+
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#4c4546' }}>Loading…</span>
+      </div>
+    )
+  }
+
+  return authed ? children : <Navigate to="/login" replace />
+}
+
+/** Shared nav + logout handler used by all dashboard pages */
+function DashboardShell({ Page }) {
+  const navigate = useNavigate()
 
   const handleNavigate = (tab) => {
-    if (tab === 'Analysis') {
-      setPage('analysis-dashboard')
-    } else if (tab === 'Dashboard') {
-      setPage('user-dashboard')
-    } else if (tab === 'Interviews') {
-      setPage('mock-interview')
-    } else if (tab === 'Resumes' || tab === 'Jobs') {
-      setPage('resumes-jobs')
+    const map = {
+      Dashboard: '/dashboard',
+      Analysis: '/analysis',
+      Interviews: '/interviews',
+      Resumes: '/resumes',
+      Jobs: '/resumes',
     }
+    if (map[tab]) navigate(map[tab])
   }
 
-  if (page === 'resumes-jobs') {
-    return (
-      <ResumesJobsPage
-        onLogout={() => setPage('login')}
-        onNavigate={handleNavigate}
-      />
-    )
-  }
-
-  if (page === 'mock-interview') {
-    return (
-      <MockInterviewPage
-        onEndSession={() => setPage('user-dashboard')}
-        onNavigate={handleNavigate}
-      />
-    )
-  }
-
-  if (page === 'user-dashboard') {
-    return (
-      <UserDashboardPage
-        onLogout={() => setPage('login')}
-        onNavigate={handleNavigate}
-      />
-    )
-  }
-
-  if (page === 'analysis-dashboard') {
-    return (
-      <DashboardPage
-        onLogout={() => setPage('login')}
-        onNavigate={handleNavigate}
-      />
-    )
-  }
-
-  if (page === 'register') {
-    return (
-      <RegisterPage
-        onGoLogin={() => setPage('login')}
-        onRegisterSuccess={() => setPage('user-dashboard')}
-      />
-    )
-  }
+  const logout = () => navigate('/login')
 
   return (
-    <LoginPage
-      onGoRegister={() => setPage('register')}
-      onLoginSuccess={() => setPage('user-dashboard')}
-    />
+    <ProtectedRoute>
+      <Page
+        onLogout={logout}
+        onEndSession={logout}
+        onNavigate={handleNavigate}
+      />
+    </ProtectedRoute>
+  )
+}
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/login"    element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Protected */}
+      <Route path="/dashboard"  element={<DashboardShell Page={UserDashboardPage} />} />
+      <Route path="/analysis"   element={<DashboardShell Page={DashboardPage} />} />
+      <Route path="/interviews" element={<DashboardShell Page={MockInterviewPage} />} />
+      <Route path="/resumes"    element={<DashboardShell Page={ResumesJobsPage} />} />
+
+      {/* Default */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   )
 }
