@@ -153,11 +153,15 @@ export default function SettingsPage({ onLogout, onNavigate }) {
             <button
               type="button"
               aria-label="Account"
-              className="text-black border-b-2 border-black pb-0.5 flex items-center justify-center p-1"
+              className="flex items-center justify-center p-1 ring-2 ring-black rounded-full"
             >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                account_circle
-              </span>
+              <div className="w-8 h-8 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-lg text-[#5e5e5e]" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+                )}
+              </div>
             </button>
             <button
               type="button"

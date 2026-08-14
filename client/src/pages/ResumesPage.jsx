@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useResumes from '../frontend_logic/useResumes'
+import useAuth from '../frontend_logic/useAuth'
 
 /**
  * ResumesPage — Dedicated Resume Management & Document Repository
@@ -12,6 +13,7 @@ import useResumes from '../frontend_logic/useResumes'
 export default function ResumesPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Resumes')
   const { resumes, loading, uploading, error, uploadResume, deleteResumeLocal } = useResumes()
+  const { user } = useAuth()
   const [selectedResume, setSelectedResume] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -84,9 +86,15 @@ export default function ResumesPage({ onLogout, onNavigate }) {
               type="button"
               aria-label="Account"
               onClick={() => handleTabClick('Settings')}
-              className="text-[#5e5e5e] hover:text-black transition-colors flex items-center justify-center p-1 cursor-pointer"
+              className="flex items-center justify-center p-1 cursor-pointer hover:opacity-75 transition-opacity"
             >
-              <span className="material-symbols-outlined">account_circle</span>
+              <div className="w-8 h-8 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-lg text-[#5e5e5e]">account_circle</span>
+                )}
+              </div>
             </button>
             <button
               type="button"

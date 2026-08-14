@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useJobs from '../frontend_logic/useJobs'
+import useAuth from '../frontend_logic/useAuth'
 
 /**
  * ResumesJobsPage — Faithful reproduction of Stitch "Job & Resume Management" (Context & Assets) screen.
@@ -11,6 +12,7 @@ import useJobs from '../frontend_logic/useJobs'
  */
 export default function ResumesJobsPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Resumes')
+  const { user } = useAuth()
   const [jobTitle, setJobTitle] = useState('')
   const [jobDescription, setJobDescription] = useState('')
   const { jobs, saving, error: jobError, saveJob } = useJobs()
@@ -92,9 +94,16 @@ export default function ResumesJobsPage({ onLogout, onNavigate }) {
             <button
               type="button"
               aria-label="Account"
-              className="text-[#5e5e5e] hover:text-black transition-colors flex items-center justify-center p-1"
+              onClick={() => handleTabClick('Settings')}
+              className="flex items-center justify-center p-1 cursor-pointer hover:opacity-75 transition-opacity"
             >
-              <span className="material-symbols-outlined">account_circle</span>
+              <div className="w-8 h-8 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-lg text-[#5e5e5e]">account_circle</span>
+                )}
+              </div>
             </button>
             <button
               type="button"
