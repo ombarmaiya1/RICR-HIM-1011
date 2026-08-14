@@ -65,22 +65,18 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:block relative border border-[#cfc4c5]">
-              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5e5e5e] text-lg pointer-events-none">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-48 pl-9 pr-3 py-1 bg-transparent text-[#1b1b1b] text-sm focus:outline-none focus:border-black border-0"
-              />
-            </div>
             <button
               type="button"
               onClick={() => handleTabClick('Settings')}
               className="flex items-center gap-2 text-xs font-semibold text-black hover:opacity-75 transition-opacity cursor-pointer"
             >
-              <span className="material-symbols-outlined text-xl text-[#5e5e5e]">account_circle</span>
+              <div className="w-9 h-9 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-xl text-[#5e5e5e]">account_circle</span>
+                )}
+              </div>
               <span className="hidden md:inline">{user?.fullName || 'My Account'}</span>
             </button>
             <button
@@ -99,13 +95,22 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
       <main className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-10 py-10 flex flex-col gap-8">
         {/* Welcome Section */}
         <section className="flex flex-col md:flex-row md:items-end justify-between border-b border-[#cfc4c5] pb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-black leading-tight">
-              Good day, {firstName}.
-            </h1>
-            <p className="text-base text-[#5e5e5e] mt-1">
-              Your preparation status is synced with the Monolith Career Engine.
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#e8e8e8] border border-[#cfc4c5] overflow-hidden flex items-center justify-center text-black shrink-0">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="material-symbols-outlined text-3xl text-[#5e5e5e]">account_circle</span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold text-black leading-tight">
+                Good day, {firstName}.
+              </h1>
+              <p className="text-base text-[#5e5e5e] mt-1">
+                Your preparation status is synced with the Monolith Career Engine.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
