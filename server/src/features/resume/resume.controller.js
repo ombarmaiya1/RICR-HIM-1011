@@ -1,9 +1,25 @@
+import path from "path";
 import Resume from "./resume.model.js";
 import AppError from "../../utils/AppError.js";
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { parseResumeWithAI } from "../../utils/ai.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary.js";
+
+/**
+ * Ensures Cloudinary PDF URLs open/download properly across all upload formats.
+ */
+const formatFileUrl = (url) => {
+  if (!url) return "";
+  if (url.includes("/image/upload/") && !url.includes("fl_attachment")) {
+    let formatted = url.replace("/image/upload/", "/image/upload/fl_attachment/");
+    if (!formatted.endsWith(".pdf") && !formatted.endsWith(".docx")) {
+      formatted += ".pdf";
+    }
+    return formatted;
+  }
+  return url;
+};
 
 /**
  * Upload and parse resume (PDF / DOCX) and store to Cloudinary
@@ -38,15 +54,15 @@ const uploadResume = async (req, res, next) => {
       throw new AppError("Could not extract text from resume", 400);
     }
 
-    // 2. Upload PDF / Document to Cloudinary
+    // 2. Upload PDF / Document to Cloudinary as RAW file with file extension
     let fileUrl = "";
     let cloudinaryPublicId = "";
     try {
-      const isPdf = req.file.mimetype === "application/pdf";
+      const ext = path.extname(req.file.originalname) || (req.file.mimetype === "application/pdf" ? ".pdf" : ".docx");
       const uploadResult = await uploadToCloudinary(req.file.buffer, {
         folder: "ai_career_pro/resumes",
-        resource_type: isPdf ? "auto" : "raw",
-        public_id: `resume_${req.user.userId}_${Date.now()}`,
+        resource_type: "raw",
+        public_id: `resume_${req.user.userId}_${Date.now()}${ext}`,
       });
 
       fileUrl = uploadResult.secure_url || uploadResult.url || "";
@@ -62,7 +78,7 @@ const uploadResume = async (req, res, next) => {
     const resume = await Resume.create({
       userId: req.user.userId,
       fileName: req.file.originalname,
-      fileUrl,
+      fileUrl: formatFileUrl(fileUrl),
       cloudinaryPublicId,
       extractedText,
       parsedData,
@@ -88,9 +104,15 @@ const getResumes = async (req, res, next) => {
       userId: req.user.userId,
     }).sort({ createdAt: -1 });
 
+    const formattedResumes = resumes.map((doc) => {
+      const obj = doc.toObject();
+      obj.fileUrl = formatFileUrl(obj.fileUrl);
+      return obj;
+    });
+
     res.status(200).json({
       success: true,
-      resumes,
+      resumes: formattedResumes,
     });
   } catch (error) {
     next(error);
@@ -112,9 +134,12 @@ const getResume = async (req, res, next) => {
       throw new AppError("Resume not found", 404);
     }
 
+    const obj = resume.toObject();
+    obj.fileUrl = formatFileUrl(obj.fileUrl);
+
     res.status(200).json({
       success: true,
-      resume,
+      resume: obj,
     });
   } catch (error) {
     next(error);
