@@ -5,8 +5,8 @@ import useJobs from '../frontend_logic/useJobs'
  * JobsPage — Dedicated Target Position & Job Description Management
  * - Sharp architectural minimalist theme (0px radius, 1px/2px black borders)
  * - Top Navbar: Dashboard, Resumes, Jobs (Active), Analysis, Interviews
- * - Target Position Form (Job Title, Job Description, Save Job CTA)
- * - Saved Jobs Repository List (Select, Preview, and Manage Saved Target Roles)
+ * - Target Position Form (Create & Edit Mode: Title, Description, Save/Update/Delete CTA)
+ * - Saved Jobs Repository List (Select, Preview, Edit, and Delete Target Roles)
  * - Footer
  */
 export default function JobsPage({ onLogout, onNavigate }) {
@@ -14,8 +14,9 @@ export default function JobsPage({ onLogout, onNavigate }) {
   const [jobTitle, setJobTitle] = useState('')
   const [jobDescription, setJobDescription] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const { jobs, saving, error: jobError, saveJob } = useJobs()
+  const { jobs, saving, error: jobError, saveJob, updateJob, deleteJob } = useJobs()
   const [selectedJob, setSelectedJob] = useState(null)
+  const [successMsg, setSuccessMsg] = useState('')
 
   const navItems = ['Dashboard', 'Resumes', 'Jobs', 'Analysis', 'Interviews']
 
@@ -24,12 +25,42 @@ export default function JobsPage({ onLogout, onNavigate }) {
     if (onNavigate) onNavigate(item)
   }
 
-  const handleSaveJob = async (e) => {
+  const handleSaveOrUpdateJob = async (e) => {
     e.preventDefault()
-    const success = await saveJob(jobTitle, jobDescription)
-    if (success) {
-      setJobTitle('')
-      setJobDescription('')
+    setSuccessMsg('')
+
+    if (selectedJob) {
+      // Update existing job
+      const updated = await updateJob(selectedJob._id, {
+        title: jobTitle,
+        description: jobDescription,
+      })
+      if (updated) {
+        setSuccessMsg('Target job updated successfully.')
+        setSelectedJob(updated)
+      }
+    } else {
+      // Create new job
+      const created = await saveJob(jobTitle, jobDescription)
+      if (created) {
+        setSuccessMsg('New target job created successfully.')
+        setJobTitle('')
+        setJobDescription('')
+      }
+    }
+  }
+
+  const handleDeleteJob = async (jobId, e) => {
+    if (e) e.stopPropagation()
+    setSuccessMsg('')
+    const ok = await deleteJob(jobId)
+    if (ok) {
+      setSuccessMsg('Job deleted successfully.')
+      if (selectedJob?._id === jobId) {
+        setSelectedJob(null)
+        setJobTitle('')
+        setJobDescription('')
+      }
     }
   }
 
@@ -37,6 +68,14 @@ export default function JobsPage({ onLogout, onNavigate }) {
     setJobTitle(j.title)
     setJobDescription(j.description)
     setSelectedJob(j)
+    setSuccessMsg('')
+  }
+
+  const handleClearSelection = () => {
+    setSelectedJob(null)
+    setJobTitle('')
+    setJobDescription('')
+    setSuccessMsg('')
   }
 
   const filteredJobs = jobs.filter((j) => {
@@ -122,7 +161,7 @@ export default function JobsPage({ onLogout, onNavigate }) {
               Job & Target Role Management
             </h1>
             <p className="text-base text-[#5e5e5e]">
-              Define target positions, save job listings, and align your preparation context.
+              Define, edit, and organize target job listings and qualifications for AI evaluation.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -136,20 +175,37 @@ export default function JobsPage({ onLogout, onNavigate }) {
           </div>
         </header>
 
+        {/* Success Banner */}
+        {successMsg && (
+          <div className="mb-6 p-4 bg-white border-2 border-black text-black text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">check_circle</span>
+            {successMsg}
+          </div>
+        )}
+
         {/* 2-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Column: Target Position Context Form */}
           <section className="md:col-span-6 bg-[#f9f9f9] p-6 border border-[#cfc4c5] flex flex-col gap-6">
-            <div className="border-b border-[#cfc4c5] pb-3">
+            <div className="border-b border-[#cfc4c5] pb-3 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-black flex items-center gap-2">
                 <span className="material-symbols-outlined text-black">work</span>
                 {selectedJob ? 'Edit Target Position' : 'New Target Position'}
               </h2>
+              {selectedJob && (
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="text-xs text-[#5e5e5e] hover:text-black uppercase tracking-wider font-semibold underline"
+                >
+                  + New Job
+                </button>
+              )}
             </div>
 
-            <form onSubmit={handleSaveJob} className="flex flex-col gap-6 flex-grow">
+            <form onSubmit={handleSaveOrUpdateJob} className="flex flex-col gap-6 flex-grow">
               <div className="flex flex-col gap-2">
-                <label htmlFor="job-title" className="text-sm font-semibold text-black">
+                <label htmlFor="job-title" className="text-xs font-semibold text-black uppercase tracking-wider">
                   Job Title / Target Role
                 </label>
                 <input
@@ -157,13 +213,14 @@ export default function JobsPage({ onLogout, onNavigate }) {
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g. Senior Software Engineer"
+                  placeholder="e.g. Senior Frontend Engineer"
                   className="w-full bg-white border border-[#cfc4c5] p-3 text-base text-black focus:outline-none focus:border-2 focus:border-black transition-all"
+                  required
                 />
               </div>
 
               <div className="flex flex-col gap-2 flex-grow">
-                <label htmlFor="job-description" className="text-sm font-semibold text-black">
+                <label htmlFor="job-description" className="text-xs font-semibold text-black uppercase tracking-wider">
                   Job Description & Requirements
                 </label>
                 <textarea
@@ -173,6 +230,7 @@ export default function JobsPage({ onLogout, onNavigate }) {
                   onChange={(e) => setJobDescription(e.target.value)}
                   placeholder="Paste the complete job description, required technical qualifications, and expectations..."
                   className="w-full bg-white border border-[#cfc4c5] p-3 text-base text-black resize-none focus:outline-none focus:border-2 focus:border-black transition-all flex-grow min-h-[220px]"
+                  required
                 ></textarea>
               </div>
 
@@ -184,26 +242,32 @@ export default function JobsPage({ onLogout, onNavigate }) {
               )}
 
               <div className="flex gap-3">
-                {selectedJob && (
+                {selectedJob ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteJob(selectedJob._id)}
+                      className="px-4 py-4 border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold uppercase tracking-widest hover:bg-[#ba1a1a] hover:text-white transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-widest py-4 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
+                    >
+                      {saving ? 'UPDATING...' : 'UPDATE TARGET POSITION'}
+                    </button>
+                  </>
+                ) : (
                   <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedJob(null)
-                      setJobTitle('')
-                      setJobDescription('')
-                    }}
-                    className="px-4 py-4 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-widest hover:border-black transition-colors"
+                    type="submit"
+                    disabled={saving}
+                    className="w-full bg-black text-white text-xs font-semibold uppercase tracking-widest py-4 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
                   >
-                    Clear
+                    {saving ? 'SAVING...' : 'SAVE TARGET POSITION'}
                   </button>
                 )}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-widest py-4 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'SAVING...' : 'SAVE TARGET POSITION'}
-                </button>
               </div>
             </form>
           </section>
@@ -237,15 +301,25 @@ export default function JobsPage({ onLogout, onNavigate }) {
                           </span>
                           <span className="text-base font-semibold text-black">{j.title}</span>
                         </div>
-                        {j.createdAt && (
-                          <span className="text-[11px] text-[#5e5e5e]">
-                            {new Date(j.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: '2-digit',
-                              year: 'numeric',
-                            })}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {j.createdAt && (
+                            <span className="text-[11px] text-[#5e5e5e]">
+                              {new Date(j.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: '2-digit',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            title="Delete Job"
+                            onClick={(e) => handleDeleteJob(j._id, e)}
+                            className="text-[#7e7576] hover:text-[#ba1a1a] p-0.5 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        </div>
                       </div>
 
                       <p className="text-xs text-[#5e5e5e] line-clamp-3 leading-relaxed">
@@ -254,7 +328,7 @@ export default function JobsPage({ onLogout, onNavigate }) {
 
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#cfc4c5]/50">
                         <span className="text-[11px] font-semibold text-black uppercase tracking-wider">
-                          Click to load into editor
+                          {isSelected ? 'Active in editor' : 'Click to edit'}
                         </span>
                         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
@@ -296,9 +370,9 @@ export default function JobsPage({ onLogout, onNavigate }) {
                   Tailored Simulations
                 </span>
               </div>
-              <h3 className="text-lg font-bold">Why save job descriptions?</h3>
+              <h3 className="text-lg font-bold">Role Alignment Context</h3>
               <p className="text-xs text-[#e2e2e2] leading-relaxed">
-                Saving specific job descriptions enables our engine to perform ATS gap scoring and dynamically generate realistic role-specific interview scenarios.
+                Updating your job descriptions dynamically synchronizes with AI gap evaluations and mock interview scenario generators.
               </p>
             </div>
           </section>
