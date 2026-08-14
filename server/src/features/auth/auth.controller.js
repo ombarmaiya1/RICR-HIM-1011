@@ -31,6 +31,7 @@ const RegisterUser = async (req, res, next) => {
   } catch (error) {
     error.statusCode = 500;
     error.message = "Error occurred while registering user";
+    console.log(error)
     next(error);
   }
 };

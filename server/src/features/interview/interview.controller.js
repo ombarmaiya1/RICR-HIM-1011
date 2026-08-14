@@ -60,11 +60,6 @@ const submitAnswer = async (req, res, next) => {
   try {
     const { interviewId } = req.params;
     const { questionIndex, answer } = req.body;
-
-    if (questionIndex === undefined || !answer) {
-      throw new AppError("Question index and answer are required", 400);
-    }
-
     if (questionIndex === undefined || !answer?.trim()) {
   throw new AppError(
     "Question index and answer are required",

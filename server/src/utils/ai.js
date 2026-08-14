@@ -1,8 +1,9 @@
+import "dotenv/config";
 import { ChatGoogle } from "@langchain/google";
 import { z } from "zod";
 
 const model = new ChatGoogle({
-  model: "gemini-2.5-flash",
+  model: "gemini-3-flash-preview",
   temperature: 0,
 });
 
@@ -159,9 +160,9 @@ Return the result as structured data.
 
 const resumeSchema = z.object({
   name: z.string(),
-  email: z.string(),
-  phone: z.string(),
-  summary: z.string(),
+  email: z.string().default(""),
+  phone: z.string().default(""),
+  summary: z.string().default(""),
 
   skills: z.array(z.string()),
 
@@ -220,3 +221,7 @@ Rules:
 
   return await resumeModel.invoke(prompt);
 };
+
+
+
+

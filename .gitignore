@@ -1,2 +1,7 @@
 node_modules/
 server/.env
+.agent/
+.agent/skills
+.agent/skills/daisyui
+*.md
+skills-lock.json

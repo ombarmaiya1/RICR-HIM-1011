@@ -38,7 +38,8 @@ app.use(cookieParser());
 await connectDB();
 
 // ROUTES
-app.use("/auth", authRoutes);
+
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
@@ -65,7 +66,8 @@ app.use((err, req, res, next) => {
       message: "Invalid ID",
     });
   }
-
+ 
+  console.log(err)
 
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
