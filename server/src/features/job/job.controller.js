@@ -13,6 +13,15 @@ const createJob = async (req, res, next) => {
       throw new AppError("Title and description are required", 400);
     }
 
+    const existingJob = await Job.findOne({
+      userId: req.user.userId,
+      title: title.trim(),
+    });
+
+    if (existingJob) {
+      throw new AppError("A job with this title already exists", 409);
+    }
+
     const job = await Job.create({
       userId: req.user.userId,
       title: title.trim(),

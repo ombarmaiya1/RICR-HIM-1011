@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import JobSuggestion from "./jobSuggestion.model.js";
 import { searchAllJobProviders } from "./providers/index.js";
 import { analyzeJobMatch } from "./jobSuggestion.ai.js";
@@ -80,14 +81,16 @@ export const getJobSuggestions = async ({
 
   const savedJobs = [];
   for (const job of rankedJobs) {
+    const userIdObjectId = new mongoose.Types.ObjectId(userId);
+
     const saved = await JobSuggestion.findOneAndUpdate(
       {
-        user: userId,
+        user: userIdObjectId,
         source: job.source,
         sourceJobId: job.sourceJobId,
       },
       {
-        user: userId,
+        user: userIdObjectId,
         ...job,
       },
       {

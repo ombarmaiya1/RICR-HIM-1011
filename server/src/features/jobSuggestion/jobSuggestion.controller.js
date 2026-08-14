@@ -20,7 +20,7 @@ export const suggestJobs = async (req, res, next) => {
 
     const resume = await Resume.findOne({
       _id: resumeId,
-      user: req.user._id,
+      user: req.user.userId,
     });
 
     if (!resume) {
@@ -30,7 +30,7 @@ export const suggestJobs = async (req, res, next) => {
     }
 
     const suggestions = await getJobSuggestions({
-      userId: req.user._id,
+      userId: req.user.userId,
       resumeText: resume.extractedText || resume.rawText || "",
       jobTitle,
       jobDescription,
@@ -54,7 +54,7 @@ export const getSavedJobSuggestions = async (req, res, next) => {
     const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
 
     const filter = {
-      user: req.user._id,
+      user: req.user.userId,
       matchScore: { $gte: Number(minScore) },
     };
 

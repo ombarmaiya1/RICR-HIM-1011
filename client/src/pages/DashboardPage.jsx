@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import useAnalysis from '../frontend_logic/useAnalysis'
 import useResumes from '../frontend_logic/useResumes'
 import useJobs from '../frontend_logic/useJobs'
@@ -31,6 +31,27 @@ export default function DashboardPage({ onLogout, onNavigate }) {
   const [selectedResumeId, setSelectedResumeId] = useState('')
   const [selectedJobId, setSelectedJobId] = useState('')
   const [showNewAnalysisModal, setShowNewAnalysisModal] = useState(false)
+
+  // Auto-prefill selected resume and job from active localStorage context or first available item
+  useEffect(() => {
+    if (resumes.length > 0 && !selectedResumeId) {
+      const activeRes = localStorage.getItem('activeResumeId')
+      if (activeRes && resumes.some((r) => (r._id || r.id) === activeRes)) {
+        setSelectedResumeId(activeRes)
+      } else {
+        setSelectedResumeId(resumes[0]._id || resumes[0].id)
+      }
+    }
+
+    if (jobs.length > 0 && !selectedJobId) {
+      const activeJ = localStorage.getItem('activeJobId')
+      if (activeJ && jobs.some((j) => (j._id || j.id) === activeJ)) {
+        setSelectedJobId(activeJ)
+      } else {
+        setSelectedJobId(jobs[0]._id || jobs[0].id)
+      }
+    }
+  }, [resumes, jobs, selectedResumeId, selectedJobId])
 
   const handleTabClick = (item) => {
     setActiveTab(item)

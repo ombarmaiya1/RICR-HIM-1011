@@ -18,7 +18,7 @@ export const checkATSCompatibility = async (
 
     const resume = await Resume.findOne({
       _id: resumeId,
-      user: req.user._id,
+      user: req.user.userId,
     });
 
     if (!resume) {
@@ -32,7 +32,7 @@ export const checkATSCompatibility = async (
     if (jobId) {
       job = await Job.findOne({
         _id: jobId,
-        user: req.user._id,
+        user: req.user.userId,
       });
 
       if (!job) {

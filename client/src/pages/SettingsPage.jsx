@@ -58,7 +58,7 @@ export default function SettingsPage({ onLogout, onNavigate }) {
     setError('')
     setSuccessMessage('')
 
-    const updatedUser = await updateProfile(
+    await updateProfile(
       {
         fullName,
         email,
@@ -92,7 +92,7 @@ export default function SettingsPage({ onLogout, onNavigate }) {
       return
     }
 
-    const ok = await changePasswordWithOTP(
+    await changePasswordWithOTP(
       {
         otp,
         newPassword,

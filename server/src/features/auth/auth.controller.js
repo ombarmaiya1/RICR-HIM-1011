@@ -93,7 +93,7 @@ const SendOTP = async (req, res, next) => {
 
     const newOTP = crypto.randomInt(100000, 999999).toString();
 
-    const existingOTP = await OTP.findOneAndUpdate(
+    await OTP.findOneAndUpdate(
       { email },
       { otp: newOTP, expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
       { upsert: true, new: true },

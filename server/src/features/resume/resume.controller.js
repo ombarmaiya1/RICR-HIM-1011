@@ -31,6 +31,15 @@ const uploadResume = async (req, res, next) => {
       throw new AppError("Resume file is required", 400);
     }
 
+    const existingResume = await Resume.findOne({
+      userId: req.user.userId,
+      fileName: req.file.originalname,
+    });
+
+    if (existingResume) {
+      throw new AppError("A resume with this file name already exists", 409);
+    }
+
     let extractedText = "";
 
     // 1. Text Extraction

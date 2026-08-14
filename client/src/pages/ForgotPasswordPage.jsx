@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
 import useOTP from '../frontend_logic/useOTP'
@@ -23,21 +23,21 @@ export default function ForgotPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const digitRefs = [
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-    useRef(null),
-  ]
+  const digitRef0 = useRef(null)
+  const digitRef1 = useRef(null)
+  const digitRef2 = useRef(null)
+  const digitRef3 = useRef(null)
+  const digitRef4 = useRef(null)
+  const digitRef5 = useRef(null)
+
+  const digitRefs = useMemo(() => [digitRef0, digitRef1, digitRef2, digitRef3, digitRef4, digitRef5], [])
 
   // Focus first OTP input when transitioning to verify step
   useEffect(() => {
     if (step === 'verify') {
       digitRefs[0].current?.focus()
     }
-  }, [step])
+  }, [step, digitRefs])
 
   // Step 1: Send OTP
   const handleSendOTP = async (e) => {
@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
   // Step 3: Reset Password
   const handleResetPassword = async (e) => {
     e.preventDefault()
-    const ok = await resetPassword(password, confirmPassword, () => {
+    await resetPassword(password, confirmPassword, () => {
       setStep('success')
     })
   }

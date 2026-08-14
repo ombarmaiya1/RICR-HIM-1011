@@ -67,7 +67,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
 
   if (err.name === "CastError") {
     return res.status(400).json({
