@@ -75,10 +75,14 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                 className="w-48 pl-9 pr-3 py-1 bg-transparent text-[#1b1b1b] text-sm focus:outline-none focus:border-black border-0"
               />
             </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-black">
+            <button
+              type="button"
+              onClick={() => handleTabClick('Settings')}
+              className="flex items-center gap-2 text-xs font-semibold text-black hover:opacity-75 transition-opacity cursor-pointer"
+            >
               <span className="material-symbols-outlined text-xl text-[#5e5e5e]">account_circle</span>
               <span className="hidden md:inline">{user?.fullName || 'My Account'}</span>
-            </div>
+            </button>
             <button
               type="button"
               aria-label="Logout"

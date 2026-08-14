@@ -102,7 +102,8 @@ export default function DashboardPage({ onLogout, onNavigate }) {
             <button
               type="button"
               aria-label="Account"
-              className="text-[#5e5e5e] hover:text-black transition-colors flex items-center justify-center p-1"
+              onClick={() => handleTabClick('Settings')}
+              className="text-[#5e5e5e] hover:text-black transition-colors flex items-center justify-center p-1 cursor-pointer"
             >
               <span className="material-symbols-outlined">account_circle</span>
             </button>

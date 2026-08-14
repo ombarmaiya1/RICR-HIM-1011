@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import MockInterviewPage from './pages/MockInterviewPage'
 import ResumesPage from './pages/ResumesPage'
 import JobsPage from './pages/JobsPage'
+import SettingsPage from './pages/SettingsPage'
 import useAuth from './frontend_logic/useAuth'
 import { useNavigate } from 'react-router-dom'
 
@@ -37,6 +38,7 @@ function DashboardShell({ Page }) {
       Interviews: '/interviews',
       Resumes: '/resumes',
       Jobs: '/jobs',
+      Settings: '/settings',
     }
     if (map[tab]) navigate(map[tab])
   }
@@ -70,6 +72,7 @@ export default function App() {
       <Route path="/interviews" element={<DashboardShell Page={MockInterviewPage} />} />
       <Route path="/resumes"    element={<DashboardShell Page={ResumesPage} />} />
       <Route path="/jobs"       element={<DashboardShell Page={JobsPage} />} />
+      <Route path="/settings"   element={<DashboardShell Page={SettingsPage} />} />
 
       {/* Default */}
       <Route path="*" element={<Navigate to="/login" replace />} />
