@@ -1,10 +1,13 @@
 import path from "path";
 import Resume from "./resume.model.js";
 import AppError from "../../utils/AppError.js";
-import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { parseResumeWithAI } from "../../utils/ai.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary.js";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 
 /**
  * Ensures Cloudinary PDF URLs open/download properly across all upload formats.
@@ -44,8 +47,7 @@ const uploadResume = async (req, res, next) => {
 
     // 1. Text Extraction
     if (req.file.mimetype === "application/pdf") {
-      const parser = new PDFParse({ data: req.file.buffer });
-      const result = await parser.getText();
+      const result = await pdfParse(req.file.buffer);
       extractedText = result.text;
     } else if (
       req.file.mimetype ===

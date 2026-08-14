@@ -93,7 +93,7 @@ const __dirname = path.dirname(__filename);
 const clientDistPath = path.join(__dirname, "../client/dist");
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
-  app.get("*", (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith("/api")) return next();
     res.sendFile(path.join(clientDistPath, "index.html"));
   });
