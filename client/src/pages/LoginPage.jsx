@@ -91,6 +91,7 @@ export default function LoginPage() {
           </label>
           <button
             type="button"
+            onClick={() => navigate('/forgot-password')}
             style={{
               background: 'none', border: 'none', padding: 0, cursor: 'pointer',
               color: '#000000', textDecoration: 'underline',
