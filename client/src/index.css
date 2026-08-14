@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "architect";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  /* Body = #f9f9f9 (matches Stitch `background`), card = #f9f9f9 (matches `surface`) */
+  --color-base-100: oklch(98% 0 0);      /* #f9f9f9 — surface / card */
+  --color-base-200: oklch(95% 0 0);      /* #eeeeee — surface-container */
+  --color-base-300: oklch(89% 0 0);      /* #e2e2e2 — outline-variant */
+  --color-base-content: oklch(11% 0 0);  /* #1b1b1b — on-surface */
+
+  --color-primary: oklch(0% 0 0);        /* #000000 */
+  --color-primary-content: oklch(100% 0 0); /* #ffffff */
+  --color-secondary: oklch(37% 0 0);     /* #5e5e5e — secondary */
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(37% 0 0);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(20% 0 0);
+  --color-neutral-content: oklch(95% 0 0);
+  --color-info: oklch(60% 0.18 220);
+  --color-info-content: oklch(98% 0 0);
+  --color-success: oklch(55% 0.18 140);
+  --color-success-content: oklch(98% 0 0);
+  --color-warning: oklch(75% 0.18 80);
+  --color-warning-content: oklch(15% 0 0);
+  --color-error: oklch(50% 0.22 30);
+  --color-error-content: oklch(98% 0 0);
+
+  /* 0px radius everywhere — "Sharp" design language from Stitch spec */
+  --radius-selector: 0rem;
+  --radius-field: 0rem;
+  --radius-box: 0rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  /* Black page background — matches the Stitch screenshot */
+  background-color: #000000;
+  color: #1b1b1b;
+}
+
+/* The white content wrapper that sits on the black body */
+.page-surface {
+  background-color: #f9f9f9;
+}
+
+/* Minimal bottom-border-only input — exact Stitch spec */
+.minimal-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #e2e2e2;
+  background-color: transparent;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 400;
+  color: #1b1b1b;
+  outline: none;
+  transition: border-color 0.15s ease, border-width 0.15s ease;
+}
+
+.minimal-input:focus {
+  border-bottom: 2px solid #000000;
+  padding-bottom: 11px;
+}
+
+.minimal-input::placeholder {
+  color: #848484;
+}
+
+/* Fade-in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fadeUp 0.3s ease-out both;
+}
