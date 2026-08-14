@@ -115,7 +115,7 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
             Good morning, Alex.
           </h1>
           <p className="text-base text-[#5e5e5e]">
-            Your career progress is looking strong. Let's keep the momentum going.
+            Your career progress is looking strong. Let&apos;s keep the momentum going.
           </p>
         </section>
 
@@ -256,7 +256,7 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Sharpen Your Delivery</h3>
                 <p className="text-sm text-[#e2e2e2] leading-relaxed mb-6">
-                  Your behavioral question responses are improving. Let's do a focused mock interview for the 'Senior Frontend Engineer' role.
+                  Your behavioral question responses are improving. Let&apos;s do a focused mock interview for the &apos;Senior Frontend Engineer&apos; role.
                 </p>
               </div>
               <button
