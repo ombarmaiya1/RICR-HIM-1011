@@ -12,7 +12,7 @@ import { useState } from 'react'
 export default function DashboardPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Analysis')
 
-  const navItems = ['Resumes', 'Jobs', 'Analysis', 'Interviews']
+  const navItems = ['Dashboard', 'Resumes', 'Jobs', 'Analysis', 'Interviews']
 
   const matchedSkills = [
     'React.js',

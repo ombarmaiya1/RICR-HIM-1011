@@ -1,21 +1,68 @@
 import { useState } from 'react'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import UserDashboardPage from './pages/UserDashboardPage'
 import DashboardPage from './pages/DashboardPage'
+import MockInterviewPage from './pages/MockInterviewPage'
+import ResumesJobsPage from './pages/ResumesJobsPage'
 
-// ponytail: hash-based routing — no react-router dep needed for simple state routing
 export default function App() {
-  const [page, setPage] = useState('dashboard') // Default to dashboard or login
+  // Default to User Dashboard after login
+  const [page, setPage] = useState('user-dashboard')
 
-  if (page === 'dashboard') {
-    return <DashboardPage onLogout={() => setPage('login')} />
+  const handleNavigate = (tab) => {
+    if (tab === 'Analysis') {
+      setPage('analysis-dashboard')
+    } else if (tab === 'Dashboard') {
+      setPage('user-dashboard')
+    } else if (tab === 'Interviews') {
+      setPage('mock-interview')
+    } else if (tab === 'Resumes' || tab === 'Jobs') {
+      setPage('resumes-jobs')
+    }
+  }
+
+  if (page === 'resumes-jobs') {
+    return (
+      <ResumesJobsPage
+        onLogout={() => setPage('login')}
+        onNavigate={handleNavigate}
+      />
+    )
+  }
+
+  if (page === 'mock-interview') {
+    return (
+      <MockInterviewPage
+        onEndSession={() => setPage('user-dashboard')}
+        onNavigate={handleNavigate}
+      />
+    )
+  }
+
+  if (page === 'user-dashboard') {
+    return (
+      <UserDashboardPage
+        onLogout={() => setPage('login')}
+        onNavigate={handleNavigate}
+      />
+    )
+  }
+
+  if (page === 'analysis-dashboard') {
+    return (
+      <DashboardPage
+        onLogout={() => setPage('login')}
+        onNavigate={handleNavigate}
+      />
+    )
   }
 
   if (page === 'register') {
     return (
       <RegisterPage
         onGoLogin={() => setPage('login')}
-        onRegisterSuccess={() => setPage('dashboard')}
+        onRegisterSuccess={() => setPage('user-dashboard')}
       />
     )
   }
@@ -23,7 +70,7 @@ export default function App() {
   return (
     <LoginPage
       onGoRegister={() => setPage('register')}
-      onLoginSuccess={() => setPage('dashboard')}
+      onLoginSuccess={() => setPage('user-dashboard')}
     />
   )
 }
