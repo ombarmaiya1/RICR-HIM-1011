@@ -64,7 +64,10 @@ if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
   app.use((req, res, next) => {
     if (req.path.startsWith("/api")) return next();
-    res.sendFile(path.join(clientDistPath, "index.html"));
+    if (req.method === "GET" && !req.path.includes(".")) {
+      return res.sendFile(path.join(clientDistPath, "index.html"));
+    }
+    next();
   });
 } else {
   app.get("/", (req, res) => {
