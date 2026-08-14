@@ -10,7 +10,7 @@ import useJobs from '../frontend_logic/useJobs'
  * - Setup launcher when no active session is loaded (Choose Resume & Job)
  * - Sidebar Context Panel (Target role, Active resume document, Live timer, Session progress)
  * - Main Q&A Workspace (Progress bar, AI question prompt, Textarea response box, AI Feedback)
- * - Bottom Action Bar (Skip Question, Submit Answer & Score)
+ * - Real performance scorecard (100% computed from AI evaluations and answers)
  */
 export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const {
@@ -35,37 +35,10 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const [seconds, setSeconds] = useState(0)
   const [showSummaryModal, setShowSummaryModal] = useState(false)
 
-  // Default fallback questions if starting demo without AI
-  const defaultQuestions = [
-    {
-      type: 'Background & Experience',
-      question:
-        'Can you describe a challenging frontend architectural decision you had to make recently, and what tradeoffs were involved?',
-      answer: '',
-      score: null,
-      feedback: '',
-    },
-    {
-      type: 'Core Competency',
-      question:
-        'How do you approach state management in complex client-side applications, and when do you reach for global state vs local component state?',
-      answer: '',
-      score: null,
-      feedback: '',
-    },
-    {
-      type: 'Technical Deep Dive',
-      question:
-        'In your experience building large-scale React applications, what specific strategies have you employed to mitigate unnecessary re-renders in deeply nested component trees? Walk me through a concrete example.',
-      answer: '',
-      score: null,
-      feedback: '',
-    },
-  ]
-
-  const activeQuestions = interview?.questions?.length ? interview.questions : defaultQuestions
-  const currentQ = activeQuestions[currentQuestionIndex] || activeQuestions[0]
-  const isLastQuestion = currentQuestionIndex === activeQuestions.length - 1
+  const activeQuestions = interview?.questions || []
+  const currentQ = activeQuestions[currentQuestionIndex] || null
+  const isLastQuestion =
+    activeQuestions.length > 0 && currentQuestionIndex === activeQuestions.length - 1
 
   // Live timer
   useEffect(() => {
@@ -94,12 +67,22 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   }
 
   const handleSubmitAnswer = async () => {
-    if (!response.trim()) return
+    if (!response.trim() || !interview?._id) return
 
-    if (interview?._id) {
-      await submitAnswer(currentQuestionIndex, response)
+    await submitAnswer(currentQuestionIndex, response)
+
+    if (isLastQuestion) {
+      const completedSession = await complete()
+      if (completedSession) {
+        setShowSummaryModal(true)
+      }
+    } else {
+      setCurrentQuestionIndex((prev) => prev + 1)
+      setResponse('')
     }
+  }
 
+  const handleSkipQuestion = async () => {
     if (isLastQuestion) {
       if (interview?._id) {
         await complete()
@@ -111,16 +94,20 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
     }
   }
 
-  const handleSkipQuestion = () => {
-    if (isLastQuestion) {
-      setShowSummaryModal(true)
-    } else {
-      setCurrentQuestionIndex((prev) => prev + 1)
-      setResponse('')
-    }
-  }
+  const progressPercent =
+    activeQuestions.length > 0
+      ? ((currentQuestionIndex + 1) / activeQuestions.length) * 100
+      : 0
 
-  const progressPercent = ((currentQuestionIndex + 1) / activeQuestions.length) * 100
+  // Real calculated score from current question state
+  const answeredScores = activeQuestions
+    .map((q) => q.score)
+    .filter((s) => typeof s === 'number')
+  const calculatedLiveScore =
+    interview?.overallScore ??
+    (answeredScores.length > 0
+      ? Math.round(answeredScores.reduce((a, b) => a + b, 0) / activeQuestions.length)
+      : 0)
 
   return (
     <div className="bg-[#f9f9f9] text-[#1b1b1b] h-screen w-screen overflow-hidden flex font-sans select-text">
@@ -147,7 +134,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
               Target Role
             </span>
             <div className="text-base font-semibold text-black">
-              {interview?.jobId?.title || 'Senior Software Engineer'}
+              {interview?.jobId?.title || 'Target Job Simulation'}
             </div>
             <div className="text-xs text-[#5e5e5e] mt-1">AI Evaluated Simulation</div>
           </div>
@@ -162,7 +149,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
             <div className="flex items-center gap-2 p-2 bg-[#f9f9f9] border border-[#cfc4c5]">
               <span className="material-symbols-outlined text-lg text-[#5e5e5e]">description</span>
               <span className="text-sm font-semibold text-black truncate">
-                {interview?.resumeId?.fileName || 'Primary_Resume_Profile.pdf'}
+                {interview?.resumeId?.fileName || 'Resume Profile'}
               </span>
             </div>
           </div>
@@ -181,7 +168,9 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
             <div className="flex justify-between items-center text-sm">
               <span className="text-[#5e5e5e]">Progress</span>
               <span className="font-semibold text-black">
-                {currentQuestionIndex + 1} of {activeQuestions.length}
+                {activeQuestions.length > 0
+                  ? `${currentQuestionIndex + 1} of ${activeQuestions.length}`
+                  : '0 of 0'}
               </span>
             </div>
           </div>
@@ -192,7 +181,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
               <span className="text-xs text-[#5e5e5e] uppercase tracking-wider block mb-2 font-semibold">
                 Saved Sessions ({interviews.length})
               </span>
-              <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto">
+              <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
                 {interviews.map((item) => (
                   <button
                     key={item._id}
@@ -210,7 +199,11 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                   >
                     <div className="truncate font-semibold">{item.jobId?.title || 'Mock Session'}</div>
                     <div className="text-[10px] text-[#5e5e5e]">
-                      {item.status === 'completed' ? `Score: ${item.overallScore || 90}%` : 'In Progress'}
+                      {item.status === 'completed' && typeof item.overallScore === 'number'
+                        ? `Score: ${item.overallScore}%`
+                        : item.status === 'completed'
+                        ? 'Completed'
+                        : 'In Progress'}
                     </div>
                   </button>
                 ))}
@@ -239,7 +232,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
           <div>
             <h1 className="text-sm font-bold text-black tracking-tighter uppercase">AI CAREER PRO</h1>
             <p className="text-xs text-[#5e5e5e]">
-              {interview?.jobId?.title || 'Senior Software Engineer'}
+              {interview?.jobId?.title || 'Mock Interview Simulation'}
             </p>
           </div>
           <button
@@ -252,156 +245,170 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
         </div>
 
         {/* Progress Indicator Bar */}
-        <div className="w-full bg-[#f9f9f9] border-b border-[#cfc4c5] pt-6 px-6 md:px-10 pb-4 flex-shrink-0">
-          <div className="max-w-3xl mx-auto w-full">
-            <div className="flex justify-between items-end mb-2">
-              <h2 className="text-xs font-semibold text-black uppercase tracking-widest">
-                Question {currentQuestionIndex + 1} of {activeQuestions.length}
-              </h2>
-              <span className="text-xs text-[#5e5e5e] font-semibold">{currentQ?.type || 'Technical'}</span>
-            </div>
-            {/* Architectural progress bar */}
-            <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden">
-              <div
-                className="h-full bg-black transition-all duration-500 ease-in-out"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
+        {activeQuestions.length > 0 && (
+          <div className="w-full bg-[#f9f9f9] border-b border-[#cfc4c5] pt-6 px-6 md:px-10 pb-4 flex-shrink-0">
+            <div className="max-w-3xl mx-auto w-full">
+              <div className="flex justify-between items-end mb-2">
+                <h2 className="text-xs font-semibold text-black uppercase tracking-widest">
+                  Question {currentQuestionIndex + 1} of {activeQuestions.length}
+                </h2>
+                <span className="text-xs text-[#5e5e5e] font-semibold">{currentQ?.type || 'Technical'}</span>
+              </div>
+              {/* Architectural progress bar */}
+              <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden">
+                <div
+                  className="h-full bg-black transition-all duration-500 ease-in-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Scrollable Q&A Area */}
         <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8">
-          <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
-            {/* AI Question Area */}
-            <section className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-6 h-6 bg-black text-white flex items-center justify-center">
-                  <span className="material-symbols-outlined text-sm">smart_toy</span>
-                </div>
-                <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
-                  AI Interviewer
-                </span>
-              </div>
-              <div className="border-l-2 border-black pl-6">
-                <p className="text-xl md:text-2xl font-semibold text-black leading-relaxed">
-                  {currentQ?.question}
-                </p>
-              </div>
-            </section>
-
-            {/* AI Previous Feedback If already answered */}
-            {currentQ?.feedback && (
-              <div className="p-4 bg-[#f3f3f3] border-l-4 border-black">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-black">
-                    AI Evaluation & Score
-                  </span>
-                  <span className="px-2 py-0.5 bg-black text-white text-xs font-bold">
-                    {currentQ.score || 85}/100
-                  </span>
-                </div>
-                <p className="text-xs text-[#4c4546]">{currentQ.feedback}</p>
-              </div>
-            )}
-
-            {/* User Answer Input Area */}
-            <section className="flex flex-col gap-2 flex-1 mt-2">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 border border-black text-black flex items-center justify-center bg-[#f9f9f9]">
-                    <span className="material-symbols-outlined text-sm">person</span>
+          {activeQuestions.length > 0 ? (
+            <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
+              {/* AI Question Area */}
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 bg-black text-white flex items-center justify-center">
+                    <span className="material-symbols-outlined text-sm">smart_toy</span>
                   </div>
                   <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
-                    Your Response
+                    AI Interviewer
                   </span>
                 </div>
-                {/* Formatting Tools */}
-                <div className="hidden md:flex gap-2">
-                  <button
-                    type="button"
-                    className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
-                    title="Format Code"
-                    onClick={() => setResponse((r) => r + '\n```js\n// Code snippet\n```\n')}
-                  >
-                    <span className="material-symbols-outlined text-lg">code</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
-                    title="Bullet List"
-                    onClick={() => setResponse((r) => r + '\n- ')}
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      format_list_bulleted
-                    </span>
-                  </button>
+                <div className="border-l-2 border-black pl-6">
+                  <p className="text-xl md:text-2xl font-semibold text-black leading-relaxed">
+                    {currentQ?.question}
+                  </p>
                 </div>
-              </div>
+              </section>
 
-              {/* Textarea Container */}
-              <div className="relative flex-1 min-h-[260px]">
-                <textarea
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  className="w-full h-full min-h-[260px] p-6 bg-[#f9f9f9] border border-[#7e7576] text-base text-black resize-none transition-all duration-200 focus:border-2 focus:border-black focus:outline-none"
-                  placeholder="Structure your answer using the STAR method (Situation, Task, Action, Result)..."
-                  spellCheck="false"
-                ></textarea>
-
-                {/* Word count & Mic status */}
-                <div className="absolute bottom-4 right-4 flex items-center gap-3 pointer-events-none">
-                  <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
-                    {wordCount} words
-                  </span>
-                  <div className="flex items-center gap-1 text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
-                    <span className="material-symbols-outlined text-sm animate-pulse text-black">
-                      mic
+              {/* AI Previous Feedback If already answered */}
+              {currentQ?.feedback && (
+                <div className="p-4 bg-[#f3f3f3] border-l-4 border-black">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-black">
+                      AI Evaluation & Score
                     </span>
-                    <span className="text-xs">Ready</span>
+                    <span className="px-2 py-0.5 bg-black text-white text-xs font-bold">
+                      {typeof currentQ.score === 'number' ? `${currentQ.score}/100` : 'Evaluated'}
+                    </span>
                   </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
-                  {error}
+                  <p className="text-xs text-[#4c4546]">{currentQ.feedback}</p>
                 </div>
               )}
-            </section>
-          </div>
+
+              {/* User Answer Input Area */}
+              <section className="flex flex-col gap-2 flex-1 mt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 border border-black text-black flex items-center justify-center bg-[#f9f9f9]">
+                      <span className="material-symbols-outlined text-sm">person</span>
+                    </div>
+                    <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
+                      Your Response
+                    </span>
+                  </div>
+                  {/* Formatting Tools */}
+                  <div className="hidden md:flex gap-2">
+                    <button
+                      type="button"
+                      className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
+                      title="Format Code"
+                      onClick={() => setResponse((r) => r + '\n```js\n// Code snippet\n```\n')}
+                    >
+                      <span className="material-symbols-outlined text-lg">code</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
+                      title="Bullet List"
+                      onClick={() => setResponse((r) => r + '\n- ')}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        format_list_bulleted
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Textarea Container */}
+                <div className="relative flex-1 min-h-[260px]">
+                  <textarea
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    className="w-full h-full min-h-[260px] p-6 bg-[#f9f9f9] border border-[#7e7576] text-base text-black resize-none transition-all duration-200 focus:border-2 focus:border-black focus:outline-none"
+                    placeholder="Structure your response clearly using the STAR method (Situation, Task, Action, Result)..."
+                    spellCheck="false"
+                  ></textarea>
+
+                  {/* Word count & Mic status */}
+                  <div className="absolute bottom-4 right-4 flex items-center gap-3 pointer-events-none">
+                    <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
+                      {wordCount} words
+                    </span>
+                    <div className="flex items-center gap-1 text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
+                      <span className="material-symbols-outlined text-sm animate-pulse text-black">
+                        mic
+                      </span>
+                      <span className="text-xs">Ready</span>
+                    </div>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
+                    {error}
+                  </div>
+                )}
+              </section>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center">
+              <span className="text-sm text-[#5e5e5e]">
+                No active interview session loaded. Please start a new session below.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="w-full bg-[#f9f9f9] border-t border-[#cfc4c5] p-4 md:px-10 md:py-6 flex-shrink-0 z-10">
-          <div className="max-w-3xl mx-auto w-full flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-4 w-full md:w-auto order-2 md:order-1">
-              <button
-                type="button"
-                onClick={handleSkipQuestion}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3.5 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider hover:border-black transition-colors"
-              >
-                <span className="material-symbols-outlined text-lg">skip_next</span>
-                Skip Question
-              </button>
-            </div>
-            <div className="flex items-center gap-4 w-full md:w-auto order-1 md:order-2">
-              <button
-                type="button"
-                disabled={submitting || completing || starting}
-                onClick={handleSubmitAnswer}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
-              >
-                {submitting
-                  ? 'Evaluating with AI…'
-                  : isLastQuestion
-                  ? 'Complete & View Scorecard'
-                  : 'Submit Answer & Next'}
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
+        {activeQuestions.length > 0 && (
+          <div className="w-full bg-[#f9f9f9] border-t border-[#cfc4c5] p-4 md:px-10 md:py-6 flex-shrink-0 z-10">
+            <div className="max-w-3xl mx-auto w-full flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-4 w-full md:w-auto order-2 md:order-1">
+                <button
+                  type="button"
+                  onClick={handleSkipQuestion}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3.5 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider hover:border-black transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">skip_next</span>
+                  Skip Question
+                </button>
+              </div>
+              <div className="flex items-center gap-4 w-full md:w-auto order-1 md:order-2">
+                <button
+                  type="button"
+                  disabled={submitting || completing || starting || !response.trim()}
+                  onClick={handleSubmitAnswer}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
+                >
+                  {submitting
+                    ? 'Evaluating with AI…'
+                    : completing
+                    ? 'Generating Scorecard…'
+                    : isLastQuestion
+                    ? 'Complete & View Scorecard'
+                    : 'Submit Answer & Next'}
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Modal: Start New Custom AI Mock Interview */}
         {!interview && (
@@ -501,11 +508,11 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     Overall Performance
                   </span>
                   <h4 className="text-2xl font-bold mt-1">
-                    {interview?.overallScore || 88}% Readiness Score
+                    {calculatedLiveScore}% Career Readiness Score
                   </h4>
                 </div>
                 <div className="px-3 py-1 bg-white text-black text-xs font-bold uppercase tracking-wider">
-                  Completed
+                  {interview?.status === 'completed' ? 'Completed' : 'Evaluated'}
                 </div>
               </div>
 
@@ -517,6 +524,34 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                   <p className="text-sm text-[#1b1b1b] bg-white p-4 border border-[#cfc4c5] leading-relaxed">
                     {interview.summary}
                   </p>
+                </div>
+              )}
+
+              {/* Individual Question Score Breakdown */}
+              {activeQuestions.length > 0 && (
+                <div>
+                  <h4 className="text-xs uppercase tracking-widest font-semibold text-[#5e5e5e] mb-2">
+                    Question Breakdown ({activeQuestions.length})
+                  </h4>
+                  <div className="flex flex-col gap-2">
+                    {activeQuestions.map((q, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white border border-[#cfc4c5] p-3 flex flex-col gap-1 text-xs"
+                      >
+                        <div className="flex justify-between items-center font-semibold text-black">
+                          <span>
+                            Q{idx + 1}: {q.type || 'Question'}
+                          </span>
+                          <span className="px-2 py-0.5 bg-[#e8e8e8] border border-[#cfc4c5]">
+                            {typeof q.score === 'number' ? `${q.score}/100` : 'Skipped'}
+                          </span>
+                        </div>
+                        <p className="text-[#5e5e5e] truncate">{q.question}</p>
+                        {q.feedback && <p className="text-[#1b1b1b] mt-1 italic">{q.feedback}</p>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

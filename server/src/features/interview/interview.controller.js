@@ -34,7 +34,7 @@ const startInterview = async (req, res, next) => {
 
     const result = await generateInterviewQuestions(
       resume.extractedText,
-      job.description,
+      job.description
     );
 
     const interview = await Interview.create({
@@ -60,12 +60,10 @@ const submitAnswer = async (req, res, next) => {
   try {
     const { interviewId } = req.params;
     const { questionIndex, answer } = req.body;
+
     if (questionIndex === undefined || !answer?.trim()) {
-  throw new AppError(
-    "Question index and answer are required",
-    400
-  );
-}
+      throw new AppError("Question index and answer are required", 400);
+    }
 
     const interview = await Interview.findOne({
       _id: interviewId,
@@ -81,8 +79,6 @@ const submitAnswer = async (req, res, next) => {
     if (!question) {
       throw new AppError("Question not found", 404);
     }
-
-    
 
     const result = await evaluateAnswer(question.question, answer);
 
@@ -112,21 +108,45 @@ const completeInterview = async (req, res, next) => {
       throw new AppError("Interview not found", 404);
     }
 
-    
+    // Gracefully handle any skipped or unanswered questions
+    interview.questions.forEach((question) => {
+      if (!question.answer || !question.answer.trim()) {
+        question.answer = "[Skipped by candidate]";
+        question.score = 0;
+        question.feedback = "Question was skipped without an answer.";
+      }
+    });
 
-    const unanswered = interview.questions.some((question) => !question.answer);
+    let overallScore = 0;
+    let summary = "";
 
-    if (unanswered) {
-      throw new AppError(
-        "Please answer all questions before completing the interview",
-        400,
+    try {
+      const result = await generateInterviewSummary(interview.questions);
+      if (result && typeof result.overallScore === "number") {
+        overallScore = result.overallScore;
+        summary = result.summary;
+      }
+    } catch (aiError) {
+      console.error("AI summary invocation failed, falling back to computed score:", aiError);
+    }
+
+    // Always guarantee mathematically accurate score from evaluations
+    const validScores = interview.questions
+      .map((q) => q.score)
+      .filter((s) => typeof s === "number");
+
+    if (!overallScore && validScores.length > 0) {
+      overallScore = Math.round(
+        validScores.reduce((sum, s) => sum + s, 0) / interview.questions.length
       );
     }
 
-    const result = await generateInterviewSummary(interview.questions);
+    if (!summary) {
+      summary = `Candidate completed mock interview across ${interview.questions.length} questions. Evaluated career readiness score: ${overallScore}%.`;
+    }
 
-    interview.overallScore = result.overallScore;
-    interview.summary = result.summary;
+    interview.overallScore = overallScore;
+    interview.summary = summary;
     interview.status = "completed";
 
     await interview.save();
@@ -180,4 +200,10 @@ const getInterview = async (req, res, next) => {
   }
 };
 
-export { startInterview, submitAnswer , completeInterview  , getInterviews, getInterview };
+export {
+  startInterview,
+  submitAnswer,
+  completeInterview,
+  getInterviews,
+  getInterview,
+};

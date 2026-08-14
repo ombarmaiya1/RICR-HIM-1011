@@ -4,19 +4,19 @@ import useDashboard from '../frontend_logic/useDashboard'
 /**
  * UserDashboardPage — Recreates the Stitch "User Dashboard" overview UI/UX
  * fully adapted to the AI Career Pro "Monolith Career System" brand theme:
+ * - Pure dynamic real career readiness metrics (NO static mock data)
  * - Sharp architectural minimalist theme (0px radius, 1px/2px black borders)
  * - Top Navbar: Dashboard (Active), Resumes, Jobs, Analysis, Interviews
  * - Dynamic Welcome greeting with real user profile
- * - Live Metrics grid (Latest Resume Score, Interviews Completed, Skills Identified)
+ * - Live Metrics: Career Readiness Score, Mock Sessions Completed, Skills Profiled
  * - Real-time Recent Activity Table & Dynamic Recommendation Card
- * - 30-Day Improvement Trend graph
  * - Footer
  */
 export default function UserDashboardPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Dashboard')
   const {
     user,
-    latestResumeScore,
+    careerReadinessScore,
     completedInterviews,
     totalMatchedSkills,
     recentActivities,
@@ -127,10 +127,10 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
 
         {/* Top Metrics Grid (3 Cards) */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Metric Card 1: Latest Resume Score */}
+          {/* Metric Card 1: Real Career Readiness Score */}
           <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6 flex flex-col justify-between items-center text-center relative">
             <h3 className="text-xs font-semibold text-[#5e5e5e] tracking-widest uppercase w-full text-left mb-4">
-              Latest Match Score
+              Career Readiness Score
             </h3>
             <div className="relative w-32 h-32 flex items-center justify-center my-2">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -150,15 +150,16 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                   stroke="#000000"
                   strokeWidth="10"
                   strokeDasharray="251.2"
-                  strokeDashoffset={251.2 - (251.2 * (latestResumeScore || 0)) / 100}
+                  strokeDashoffset={251.2 - (251.2 * (careerReadinessScore || 0)) / 100}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-bold text-black">{latestResumeScore}%</span>
+                <span className="text-3xl font-bold text-black">{careerReadinessScore}%</span>
               </div>
             </div>
             <div className="mt-2 px-3 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wider flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm">trending_up</span> AI Match
+              <span className="material-symbols-outlined text-sm">trending_up</span>{' '}
+              {careerReadinessScore > 0 ? 'AI Aggregate Score' : 'Awaiting Activity'}
             </div>
           </div>
 
@@ -176,11 +177,11 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
               <span className="text-4xl font-bold text-black block mb-1">
                 {completedInterviews}
               </span>
-              <p className="text-xs text-[#5e5e5e]">Completed & Evaluated</p>
+              <p className="text-xs text-[#5e5e5e]">Completed & AI Evaluated</p>
             </div>
           </div>
 
-          {/* Metric Card 3: Skills Improved */}
+          {/* Metric Card 3: Skills Profiled */}
           <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6 flex flex-col justify-between items-start">
             <div className="flex items-center gap-3 w-full mb-4">
               <div className="w-10 h-10 bg-[#e8e8e8] text-black flex items-center justify-center border border-[#cfc4c5]">
@@ -194,7 +195,7 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
               <span className="text-4xl font-bold text-black block mb-1">
                 {totalMatchedSkills}
               </span>
-              <p className="text-xs text-[#5e5e5e]">Extracted from profile</p>
+              <p className="text-xs text-[#5e5e5e]">Extracted from match analyses</p>
             </div>
           </div>
         </section>
@@ -230,7 +231,7 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                         Loading recent activities…
                       </td>
                     </tr>
-                  ) : (
+                  ) : recentActivities.length > 0 ? (
                     recentActivities.map((act) => (
                       <tr
                         key={act.id}
@@ -255,13 +256,19 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                         </td>
                       </tr>
                     ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-xs text-[#5e5e5e]">
+                        No activities recorded yet. Upload a resume or run an interview to get started.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Right: Recommendation & Trend Chart (4 cols) */}
+          {/* Right: Recommendation & Actions (4 cols) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             {/* Recommendation Card */}
             <div className="bg-black text-white p-6 border-2 border-black flex flex-col justify-between">
@@ -272,11 +279,15 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
                     AI Recommendation
                   </span>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Simulate Target Role</h3>
+                <h3 className="text-xl font-bold mb-2">
+                  {careerReadinessScore >= 80
+                    ? 'Senior Readiness Benchmark'
+                    : 'Target Practice Recommended'}
+                </h3>
                 <p className="text-sm text-[#e2e2e2] leading-relaxed mb-6">
-                  {latestResumeScore >= 80
-                    ? 'Your profile alignment is solid. Run a technical & behavioral mock interview to test your responses against senior benchmarks.'
-                    : 'Target a position to analyze skill gaps and run customized interview prep sessions tailored to required tech stacks.'}
+                  {careerReadinessScore >= 80
+                    ? 'Your career readiness index indicates high preparedness. Keep practicing technical mock interviews to maintain sharpness.'
+                    : 'Run a match analysis between your resume and a target job to uncover skill gaps and test your interview responses against real role criteria.'}
                 </p>
               </div>
               <button
@@ -289,34 +300,33 @@ export default function UserDashboardPage({ onLogout, onNavigate }) {
               </button>
             </div>
 
-            {/* Improvement Trend Chart */}
-            <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6 flex flex-col">
-              <h3 className="text-xs font-semibold text-[#5e5e5e] tracking-widest uppercase mb-4">
-                Readiness Progression
+            {/* Quick Links Card */}
+            <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6 flex flex-col gap-3">
+              <h3 className="text-xs font-semibold text-[#5e5e5e] tracking-widest uppercase">
+                Quick Shortcuts
               </h3>
-              <div className="h-32 w-full mt-auto relative flex items-end justify-between px-2 pb-4">
-                {/* SVG Line Chart */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
-                  <line x1="0" y1="12.5" x2="100" y2="12.5" stroke="#e8e8e8" strokeDasharray="2,2" strokeWidth="0.5" />
-                  <line x1="0" y1="25" x2="100" y2="25" stroke="#e8e8e8" strokeDasharray="2,2" strokeWidth="0.5" />
-                  <line x1="0" y1="37.5" x2="100" y2="37.5" stroke="#e8e8e8" strokeDasharray="2,2" strokeWidth="0.5" />
-                  <path
-                    d="M 0,40 Q 20,35 40,25 T 70,15 T 100,5"
-                    fill="none"
-                    stroke="#000000"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="40" cy="25" r="2.5" fill="#000000" />
-                  <circle cx="70" cy="15" r="2.5" fill="#000000" />
-                  <circle cx="100" cy="5" r="3.5" fill="#ffffff" stroke="#000000" strokeWidth="2" />
-                </svg>
-                {/* Labels */}
-                <div className="absolute bottom-0 left-0 w-full flex justify-between text-[10px] text-[#5e5e5e] px-2">
-                  <span>Initial</span>
-                  <span>Targeted</span>
-                  <span>Current</span>
-                </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleTabClick('Jobs')}
+                  className="text-left text-xs font-semibold text-black hover:underline py-1"
+                >
+                  → Add or Edit Target Jobs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabClick('Analysis')}
+                  className="text-left text-xs font-semibold text-black hover:underline py-1"
+                >
+                  → View Match Gap Analysis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabClick('Settings')}
+                  className="text-left text-xs font-semibold text-black hover:underline py-1"
+                >
+                  → Account & Security Settings
+                </button>
               </div>
             </div>
           </div>

@@ -2,16 +2,26 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../api/axios'
 
 /**
- * Hook to fetch and format dashboard metrics from GET /api/dashboard and GET /api/users/me:
- * - Aggregated metrics (Resume Score, Completed Interviews, Improved Skills)
- * - Real-time activity timeline (Analyses, Mock Interviews, Resume Uploads)
- * - Dynamic AI Recommendations
+ * Hook to fetch and compute real dashboard metrics from GET /api/dashboard and GET /api/users/me:
+ * - Real Career Readiness Score (computed from completed interviews & match analyses)
+ * - Real Match Score & Interview Scores
+ * - Real count of completed interviews
+ * - Real unique skills extracted by AI
+ * - Real-time activity timeline without static demo data
  */
 export default function useDashboard() {
   const [data, setData] = useState({
     resumes: [],
     analyses: [],
     interviews: [],
+    metrics: {
+      careerReadinessScore: 0,
+      completedInterviewsCount: 0,
+      totalInterviewsCount: 0,
+      skillsProfiledCount: 0,
+      latestMatchScore: null,
+      latestInterviewScore: null,
+    },
     user: null,
   })
   const [loading, setLoading] = useState(true)
@@ -32,6 +42,14 @@ export default function useDashboard() {
         resumes: dashData.resumes || [],
         analyses: dashData.analyses || [],
         interviews: dashData.interviews || [],
+        metrics: dashData.metrics || {
+          careerReadinessScore: 0,
+          completedInterviewsCount: 0,
+          totalInterviewsCount: 0,
+          skillsProfiledCount: 0,
+          latestMatchScore: null,
+          latestInterviewScore: null,
+        },
         user: userData,
       })
       setError('')
@@ -46,31 +64,21 @@ export default function useDashboard() {
     fetchDashboard()
   }, [fetchDashboard])
 
-  // Calculated Metrics
-  const latestAnalysis = data.analyses[0] || null
-  const latestResumeScore = latestAnalysis ? latestAnalysis.matchScore : data.resumes.length > 0 ? 85 : 0
-  const completedInterviews = data.interviews.filter((i) => i.status === 'completed').length || data.interviews.length
-  
-  // Total unique or matched skills identified
-  const totalMatchedSkills = data.analyses.reduce(
-    (acc, a) => acc + (a.matchedSkills?.length || 0),
-    0
-  ) || (data.resumes.length > 0 ? 12 : 0)
-
-  // Format merged recent activities
+  // Format real merged activities
   const recentActivities = [
     ...data.analyses.map((a) => ({
       id: `analysis-${a._id}`,
-      icon: 'description',
-      name: `Analysis: ${a.jobId?.title || 'Target Role'}`,
+      icon: 'analytics',
+      name: `Match Analysis: ${a.jobId?.title || 'Target Role'}`,
       role: a.jobId?.title || 'General Position',
       date: new Date(a.createdAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
+        year: 'numeric',
       }),
-      status: `${a.matchScore}% Match`,
+      status: typeof a.matchScore === 'number' ? `${a.matchScore}% Match` : 'Evaluated',
       statusColor:
-        a.matchScore >= 80
+        (a.matchScore || 0) >= 80
           ? 'bg-[#000000] text-white'
           : 'bg-[#e8e8e8] text-black border border-[#cfc4c5]',
       rawDate: new Date(a.createdAt),
@@ -78,13 +86,19 @@ export default function useDashboard() {
     ...data.interviews.map((i) => ({
       id: `interview-${i._id}`,
       icon: 'mic',
-      name: 'Mock Interview Session',
+      name: `Mock Interview: ${i.jobId?.title || 'Role Session'}`,
       role: i.jobId?.title || 'Target Role',
       date: new Date(i.createdAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
+        year: 'numeric',
       }),
-      status: i.status === 'completed' ? `${i.overallScore || 90}% Score` : 'In Progress',
+      status:
+        i.status === 'completed' && typeof i.overallScore === 'number'
+          ? `${i.overallScore}% Score`
+          : i.status === 'completed'
+          ? 'Completed'
+          : 'In Progress',
       statusColor:
         i.status === 'completed'
           ? 'bg-[#000000] text-white'
@@ -93,12 +107,13 @@ export default function useDashboard() {
     })),
     ...data.resumes.map((r) => ({
       id: `resume-${r._id}`,
-      icon: 'upload_file',
-      name: r.fileName || 'Resume Upload',
-      role: 'Foundational Document',
+      icon: 'description',
+      name: r.fileName || 'Resume Document',
+      role: 'Profile Resume',
       date: new Date(r.createdAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
+        year: 'numeric',
       }),
       status: 'Uploaded',
       statusColor: 'bg-[#e8e8e8] text-black border border-[#cfc4c5]',
@@ -108,30 +123,16 @@ export default function useDashboard() {
     .sort((a, b) => b.rawDate - a.rawDate)
     .slice(0, 5)
 
-  // Default fallback activities if brand new user
-  const displayActivities =
-    recentActivities.length > 0
-      ? recentActivities
-      : [
-          {
-            id: 'placeholder-1',
-            icon: 'description',
-            name: 'Getting Started',
-            role: 'Upload your resume to begin',
-            date: 'Today',
-            status: 'Ready',
-            statusColor: 'bg-[#000000] text-white',
-          },
-        ]
-
   return {
     ...data,
     loading,
     error,
-    latestResumeScore,
-    completedInterviews,
-    totalMatchedSkills,
-    recentActivities: displayActivities,
+    careerReadinessScore: data.metrics?.careerReadinessScore || 0,
+    completedInterviews: data.metrics?.completedInterviewsCount || 0,
+    totalMatchedSkills: data.metrics?.skillsProfiledCount || 0,
+    latestMatchScore: data.metrics?.latestMatchScore,
+    latestInterviewScore: data.metrics?.latestInterviewScore,
+    recentActivities,
     refetch: fetchDashboard,
   }
 }
