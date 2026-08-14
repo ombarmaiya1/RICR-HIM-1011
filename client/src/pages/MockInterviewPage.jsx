@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import useInterview from '../frontend_logic/useInterview'
 import useResumes from '../frontend_logic/useResumes'
 import useJobs from '../frontend_logic/useJobs'
+import useSpeech from '../frontend_logic/useSpeech'
 
 /**
  * MockInterviewPage — Complete AI Mock Interview Session & Scorecard
@@ -35,18 +36,64 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const [seconds, setSeconds] = useState(0)
   const [showSummaryModal, setShowSummaryModal] = useState(false)
 
+  const QUESTION_TIME = 120 // seconds per question
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(QUESTION_TIME)
+
+  const {
+    sttSupported, listening, transcript, resetTranscript,
+    startListening, stopListening,
+    ttsSupported, speaking, speak, stopSpeaking,
+  } = useSpeech()
+
+  // Append new voice transcript into the response textarea
+  useEffect(() => {
+    if (transcript) setResponse((prev) => prev + transcript)
+    resetTranscript()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript])
+
+  // Auto-read each new question aloud when it appears
+  useEffect(() => {
+    if (currentQ?.question) speak(currentQ.question)
+    return () => stopSpeaking()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionIndex, interview?._id])
+
+  const toggleMic = () => {
+    if (listening) stopListening()
+    else startListening()
+  }
+
   const activeQuestions = interview?.questions || []
   const currentQ = activeQuestions[currentQuestionIndex] || null
   const isLastQuestion =
     activeQuestions.length > 0 && currentQuestionIndex === activeQuestions.length - 1
 
-  // Live timer
+  // Live session timer (counts up)
   useEffect(() => {
     const interval = setInterval(() => {
       setSeconds((prev) => prev + 1)
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // Per-question countdown — resets every time the question index changes
+  useEffect(() => {
+    if (!interview) return
+    setQuestionTimeLeft(QUESTION_TIME)
+    const interval = setInterval(() => {
+      setQuestionTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          handleSkipQuestion()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionIndex, interview?._id])
 
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60)
@@ -68,6 +115,8 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
 
   const handleSubmitAnswer = async () => {
     if (!response.trim() || !interview?._id) return
+    stopListening()
+    stopSpeaking()
 
     await submitAnswer(currentQuestionIndex, response)
 
@@ -83,6 +132,8 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   }
 
   const handleSkipQuestion = async () => {
+    stopListening()
+    stopSpeaking()
     if (isLastQuestion) {
       if (interview?._id) {
         await complete()
@@ -248,17 +299,44 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
         {activeQuestions.length > 0 && (
           <div className="w-full bg-[#f9f9f9] border-b border-[#cfc4c5] pt-6 px-6 md:px-10 pb-4 flex-shrink-0">
             <div className="max-w-3xl mx-auto w-full">
-              <div className="flex justify-between items-end mb-2">
+              <div className="flex justify-between items-center mb-2">
                 <h2 className="text-xs font-semibold text-black uppercase tracking-widest">
                   Question {currentQuestionIndex + 1} of {activeQuestions.length}
                 </h2>
-                <span className="text-xs text-[#5e5e5e] font-semibold">{currentQ?.type || 'Technical'}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[#5e5e5e] font-semibold">{currentQ?.type || 'Technical'}</span>
+                  {/* Per-question countdown */}
+                  <span
+                    className={`text-xs font-bold tabular-nums px-2 py-0.5 border ${
+                      questionTimeLeft > 60
+                        ? 'border-[#cfc4c5] text-[#1b1b1b]'
+                        : questionTimeLeft > 30
+                        ? 'border-[#e6a817] text-[#a36800] bg-[#fff8ed]'
+                        : 'border-[#ba1a1a] text-[#ba1a1a] bg-[#fdf2f2] animate-pulse'
+                    }`}
+                  >
+                    {formatTime(questionTimeLeft)}
+                  </span>
+                </div>
               </div>
-              {/* Architectural progress bar */}
-              <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden">
+              {/* Question progress bar */}
+              <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden mb-1">
                 <div
                   className="h-full bg-black transition-all duration-500 ease-in-out"
                   style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+              {/* Per-question time bar */}
+              <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden">
+                <div
+                  className="h-full transition-all duration-1000 ease-linear"
+                  style={{
+                    width: `${(questionTimeLeft / QUESTION_TIME) * 100}%`,
+                    backgroundColor:
+                      questionTimeLeft > 60 ? '#000000'
+                      : questionTimeLeft > 30 ? '#e6a817'
+                      : '#ba1a1a',
+                  }}
                 ></div>
               </div>
             </div>
@@ -278,6 +356,20 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                   <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
                     AI Interviewer
                   </span>
+                  {ttsSupported && (
+                    <button
+                      type="button"
+                      title={speaking ? 'Stop reading' : 'Read question aloud'}
+                      onClick={() => speaking ? stopSpeaking() : speak(currentQ?.question)}
+                      className={`ml-auto p-1 transition-colors ${
+                        speaking ? 'text-black' : 'text-[#5e5e5e] hover:text-black'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {speaking ? 'stop_circle' : 'volume_up'}
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <div className="border-l-2 border-black pl-6">
                   <p className="text-xl md:text-2xl font-semibold text-black leading-relaxed">
@@ -345,17 +437,35 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     spellCheck="false"
                   ></textarea>
 
-                  {/* Word count & Mic status */}
-                  <div className="absolute bottom-4 right-4 flex items-center gap-3 pointer-events-none">
-                    <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
+                  {/* Word count & Mic toggle */}
+                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                    <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold pointer-events-none">
                       {wordCount} words
                     </span>
-                    <div className="flex items-center gap-1 text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold">
-                      <span className="material-symbols-outlined text-sm animate-pulse text-black">
-                        mic
-                      </span>
-                      <span className="text-xs">Ready</span>
-                    </div>
+                    {sttSupported ? (
+                      <button
+                        type="button"
+                        title={listening ? 'Stop voice input' : 'Start voice input'}
+                        onClick={toggleMic}
+                        className={`flex items-center gap-1 px-2.5 py-1 border font-semibold text-xs transition-all ${
+                          listening
+                            ? 'border-black bg-black text-white'
+                            : 'border-[#cfc4c5] bg-[#f9f9f9] text-[#5e5e5e] hover:border-black hover:text-black'
+                        }`}
+                      >
+                        <span className={`material-symbols-outlined text-sm ${
+                          listening ? 'animate-pulse' : ''
+                        }`}>
+                          {listening ? 'mic' : 'mic_off'}
+                        </span>
+                        <span>{listening ? 'Listening…' : 'Voice'}</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1 text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold text-xs pointer-events-none">
+                        <span className="material-symbols-outlined text-sm">mic_off</span>
+                        <span>No mic</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
