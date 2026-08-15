@@ -24,7 +24,7 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return authed ? children : <Navigate to="/login" replace />
+  return authed ? children : <Navigate to="/" replace />
 }
 
 /** Redirects logged-in users away from auth pages to /dashboard */
