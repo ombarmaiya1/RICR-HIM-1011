@@ -5,50 +5,12 @@ import AppError from "../../utils/AppError.js";
 import { analyzeWithAI } from "../../utils/ai.js";
 
 const fallbackAnalysis = (resume, job) => {
-  const resumeStr = (resume.extractedText || JSON.stringify(resume.parsedData || {}) || '').toLowerCase()
-  const jobStr = (job.description || job.title || '').toLowerCase()
-
-  const extractedSkills = resume.parsedData?.skills || []
-  const commonTech = [
-    'react', 'node.js', 'javascript', 'typescript', 'python', 'java', 'aws', 'docker',
-    'kubernetes', 'sql', 'mongodb', 'git', 'ci/cd', 'rest api', 'graphql', 'html', 'css',
-    'express', 'microservices'
-  ]
-
-  const matched = []
-  const missing = []
-
-  const allSkillsToCheck = Array.from(
-    new Set([...extractedSkills.map((s) => s.toLowerCase()), ...commonTech])
-  )
-
-  allSkillsToCheck.forEach((skill) => {
-    if (resumeStr.includes(skill) && (jobStr.includes(skill) || jobStr.length < 50)) {
-      matched.push(skill.toUpperCase())
-    } else if (jobStr.includes(skill)) {
-      missing.push(skill.toUpperCase())
-    }
-  })
-
-  if (matched.length === 0) {
-    matched.push('SOFTWARE DEVELOPMENT', 'PROBLEM SOLVING')
-  }
-  if (missing.length === 0) {
-    missing.push('SYSTEM ARCHITECTURE')
-  }
-
-  const score = matched.length > 0 ? Math.min(35, Math.max(5, Math.floor(15 + matched.length * 2 - missing.length * 5))) : 0
-
   return {
-    matchScore: score,
-    matchedSkills: matched.slice(0, 8),
-    missingSkills: missing.slice(0, 6),
-    suggestions: [
-      `Highlight experience with ${missing[0] || 'key skills'} in your executive summary.`,
-      `Add quantitative metrics related to ${matched[0] || 'core technologies'}.`,
-      `Tailor job responsibility bullet points to reflect ${job.title ? `the ${job.title}` : 'target role'} requirements.`,
-    ],
-    summary: `Candidate demonstrates ${score > 0 ? `${score}%` : 'limited'} technical alignment with ${job.title ? `"${job.title}"` : 'the target position'}. Review skill gaps and update resume keywords for better ATS compatibility.`,
+    matchScore: 0,
+    matchedSkills: [],
+    missingSkills: [],
+    suggestions: [],
+    summary: "AI analysis is currently unavailable. Please try again later.",
   }
 }
 
@@ -93,11 +55,11 @@ const analyzeResume = async (req, res, next) => {
     try {
       result = await analyzeWithAI(resumeText, jobText)
     } catch (aiErr) {
-      console.warn('AI analysis call failed, using rule-based match fallback:', aiErr.message)
+      console.warn('AI analysis call failed, using fallback:', aiErr.message)
       result = fallbackAnalysis(resume, job)
     }
 
-    if (!result || !result.matchScore) {
+    if (!result) {
       result = fallbackAnalysis(resume, job)
     }
 
