@@ -64,9 +64,9 @@ if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
 }
 
-// Universal SPA fallback for all non-API GET routes
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api")) return next();
+// Universal SPA fallback middleware for all non-API GET routes (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method !== "GET" || req.path.startsWith("/api")) return next();
 
   const indexPath = path.join(clientDistPath, "index.html");
   if (fs.existsSync(indexPath)) {
