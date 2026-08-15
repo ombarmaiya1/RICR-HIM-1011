@@ -64,7 +64,7 @@ if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
 }
 
-// Universal SPA fallback middleware for all non-API GET routes (Express 5 compatible)
+// Universal SPA fallback middleware for non-API GET routes (Express 5 compatible)
 app.use((req, res, next) => {
   if (req.method !== "GET" || req.path.startsWith("/api")) return next();
 
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
     return res.sendFile(indexPath);
   }
 
-  res.json({ message: "API Server is running." });
+  next();
 });
 
 // DEFAULT ERROR HANDLERS
