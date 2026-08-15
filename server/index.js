@@ -58,22 +58,23 @@ import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const clientDistPath = path.join(__dirname, "../client/dist");
+
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api")) return next();
-    if (req.method === "GET" && !req.path.includes(".")) {
-      return res.sendFile(path.join(clientDistPath, "index.html"));
-    }
-    next();
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.json("API Server is running.");
-  });
 }
+
+// Universal SPA fallback for all non-API GET routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+
+  const indexPath = path.join(clientDistPath, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  res.json({ message: "API Server is running." });
+});
 
 // DEFAULT ERROR HANDLERS
 app.use((err, req, res, next) => {
