@@ -92,6 +92,15 @@ export default function JobSuggestionsPage({ onLogout, onNavigate }) {
     }
   }
 
+  const handleApplyToJob = (job) => {
+    handleSaveToTargetJobs(job)
+    const targetUrl =
+      job.applyUrl ||
+      job.jobUrl ||
+      `https://www.google.com/search?q=apply+${encodeURIComponent(job.title + ' ' + (job.company || ''))}`
+    window.open(targetUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const filteredSuggestions = suggestions.filter((job) => {
     if (!searchFilter) return true
     const query = searchFilter.toLowerCase()
@@ -469,26 +478,14 @@ export default function JobSuggestionsPage({ onLogout, onNavigate }) {
                                 {isSaved ? 'Saved to Target' : 'Save Position'}
                               </button>
 
-                              {job.jobUrl || job.applyUrl ? (
-                                <a
-                                  href={job.jobUrl || job.applyUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 sm:flex-none px-6 py-2 bg-black text-white font-semibold text-xs tracking-wider uppercase hover:bg-[#303030] transition-colors inline-flex items-center justify-center gap-1"
-                                >
-                                  Initiate Apply
-                                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                </a>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveToTargetJobs(job)}
-                                  className="flex-1 sm:flex-none px-6 py-2 bg-black text-white font-semibold text-xs tracking-wider uppercase hover:bg-[#303030] transition-colors cursor-pointer inline-flex items-center justify-center gap-1"
-                                >
-                                  Initiate Apply
-                                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleApplyToJob(job)}
+                                className="flex-1 sm:flex-none px-6 py-2 bg-black text-white font-semibold text-xs tracking-wider uppercase hover:bg-[#303030] transition-colors cursor-pointer inline-flex items-center justify-center gap-1"
+                              >
+                                Apply Now
+                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                              </button>
                             </div>
                           </div>
                         </div>

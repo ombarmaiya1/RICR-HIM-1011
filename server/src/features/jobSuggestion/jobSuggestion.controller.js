@@ -64,13 +64,22 @@ export const getSavedJobSuggestions = async (req, res, next) => {
 
     const skip = (pageNumber - 1) * limitNumber;
 
-    const [jobs, total] = await Promise.all([
+    let [jobs, total] = await Promise.all([
       JobSuggestion.find(filter)
         .sort({ matchScore: -1, createdAt: -1 })
         .skip(skip)
         .limit(limitNumber),
       JobSuggestion.countDocuments(filter),
     ]);
+
+    // If user has no job suggestions yet, generate initial suggestions automatically
+    if (jobs.length === 0) {
+      jobs = await getJobSuggestions({
+        userId: req.user.userId,
+        jobTitle: "Software Engineer",
+      });
+      total = jobs.length;
+    }
 
     return res.status(200).json({
       message: "Job suggestions fetched successfully",
@@ -79,7 +88,7 @@ export const getSavedJobSuggestions = async (req, res, next) => {
         page: pageNumber,
         limit: limitNumber,
         total,
-        totalPages: Math.ceil(total / limitNumber),
+        totalPages: Math.ceil(total / limitNumber) || 1,
         hasNextPage: pageNumber * limitNumber < total,
         hasPreviousPage: pageNumber > 1,
       },
