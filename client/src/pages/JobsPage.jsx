@@ -290,6 +290,16 @@ export default function JobsPage({ onLogout, onNavigate }) {
                           >
                             Interview
                           </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (onNavigate) onNavigate('Interviews')
+                            }}
+                            className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider border border-black text-black bg-white hover:bg-[#e8e8e8]"
+                          >
+                            Apply
+                          </button>
                         </div>
                       </div>
                     </div>
