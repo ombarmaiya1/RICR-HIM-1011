@@ -7,7 +7,7 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinar
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+const { PDFParse } = require("pdf-parse");
 
 /**
  * Ensures Cloudinary PDF URLs open/download properly across all upload formats.
@@ -47,7 +47,8 @@ const uploadResume = async (req, res, next) => {
 
     // 1. Text Extraction
     if (req.file.mimetype === "application/pdf") {
-      const result = await pdfParse(req.file.buffer);
+      const parser = new PDFParse({ data: req.file.buffer });
+      const result = await parser.getText();
       extractedText = result.text;
     } else if (
       req.file.mimetype ===
