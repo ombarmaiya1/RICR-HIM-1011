@@ -67,11 +67,11 @@ export const getJobSuggestions = async ({
       console.error("AI job analysis failed for job:", job.sourceJobId, error.message);
       analyzedJobs.push({
         ...job,
-        matchScore: 60,
-        matchedSkills: ["Keyword match"],
+        matchScore: 0,
+        matchedSkills: [],
         missingSkills: [],
-        recommendation: "Relevant job posting found.",
-        reasons: ["Matched user search query."],
+        recommendation: "Match score unavailable. Please retry.",
+        reasons: [],
       });
     }
   }

@@ -197,7 +197,7 @@ const checkKeywords = (
     return {
       matchedKeywords: [],
       missingKeywords: [],
-      score: 100,
+      score: 0,
     };
   }
 

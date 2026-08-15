@@ -64,11 +64,11 @@ Rules:
     console.error("AI matching invocation error:", error.message);
     // Fallback basic evaluation if AI service call fails
     return {
-      matchScore: 65,
-      matchedSkills: ["General Technical Skills"],
-      missingSkills: ["Role Specific Verification Required"],
-      reasons: ["Basic keyword overlap matched."],
-      recommendation: "Moderate match based on initial query criteria.",
+      matchScore: 0,
+      matchedSkills: [],
+      missingSkills: [],
+      reasons: [],
+      recommendation: "Unable to determine match at this time. Please try again later.",
     };
   }
 };
