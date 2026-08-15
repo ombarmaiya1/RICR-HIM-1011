@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -8,8 +9,8 @@ import MockInterviewPage from './pages/MockInterviewPage'
 import ResumesPage from './pages/ResumesPage'
 import JobSuggestionsPage from './pages/JobSuggestionsPage'
 import SettingsPage from './pages/SettingsPage'
+import LandingPage from './pages/LandingPage'
 import useAuth from './frontend_logic/useAuth'
-import { useNavigate } from 'react-router-dom'
 
 /** Redirects to /login if the session check fails */
 function ProtectedRoute({ children }) {
@@ -80,6 +81,9 @@ function DashboardShell({ Page }) {
 export default function App() {
   return (
     <Routes>
+      {/* Landing Page */}
+      <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+
       {/* Public Auth Routes (Redirect to /dashboard if logged in) */}
       <Route path="/login"           element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/register"        element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
@@ -94,8 +98,8 @@ export default function App() {
       <Route path="/job-suggestions" element={<DashboardShell Page={JobSuggestionsPage} />} />
       <Route path="/settings"   element={<DashboardShell Page={SettingsPage} />} />
 
-      {/* Default */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Fallback → landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
