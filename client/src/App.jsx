@@ -26,6 +26,21 @@ function ProtectedRoute({ children }) {
   return authed ? children : <Navigate to="/login" replace />
 }
 
+/** Redirects logged-in users away from auth pages to /dashboard */
+function PublicOnlyRoute({ children }) {
+  const { authed, checking } = useAuth()
+
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#4c4546' }}>Loading…</span>
+      </div>
+    )
+  }
+
+  return authed ? <Navigate to="/dashboard" replace /> : children
+}
+
 /** Shared nav + logout handler used by all dashboard pages */
 function DashboardShell({ Page }) {
   const navigate = useNavigate()
@@ -47,11 +62,15 @@ function DashboardShell({ Page }) {
     authLogout(() => navigate('/login'))
   }
 
+  const handleEndSession = () => {
+    navigate('/dashboard')
+  }
+
   return (
     <ProtectedRoute>
       <Page
         onLogout={logout}
-        onEndSession={logout}
+        onEndSession={handleEndSession}
         onNavigate={handleNavigate}
       />
     </ProtectedRoute>
@@ -61,12 +80,12 @@ function DashboardShell({ Page }) {
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/login"           element={<LoginPage />} />
-      <Route path="/register"        element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      {/* Public Auth Routes (Redirect to /dashboard if logged in) */}
+      <Route path="/login"           element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/register"        element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+      <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
 
-      {/* Protected */}
+      {/* Protected Routes */}
       <Route path="/dashboard"  element={<DashboardShell Page={UserDashboardPage} />} />
       <Route path="/analysis"   element={<DashboardShell Page={DashboardPage} />} />
       <Route path="/interviews" element={<DashboardShell Page={MockInterviewPage} />} />
@@ -76,7 +95,7 @@ export default function App() {
       <Route path="/settings"   element={<DashboardShell Page={SettingsPage} />} />
 
       {/* Default */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
 }
