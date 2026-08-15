@@ -37,7 +37,7 @@ const fallbackAnalysis = (resume, job) => {
     missing.push('SYSTEM ARCHITECTURE')
   }
 
-  const score = matched.length > 0 ? Math.min(90, Math.max(10, Math.floor(40 + matched.length * 5 - missing.length * 3))) : 0
+  const score = matched.length > 0 ? Math.min(35, Math.max(5, Math.floor(15 + matched.length * 2 - missing.length * 5))) : 0
 
   return {
     matchScore: score,
