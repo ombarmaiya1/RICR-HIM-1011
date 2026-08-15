@@ -5,13 +5,10 @@ import useJobs from '../frontend_logic/useJobs'
 import useSpeech from '../frontend_logic/useSpeech'
 
 /**
- * MockInterviewPage — Complete AI Mock Interview Session & Scorecard
- * - Connected to backend /api/interviews (start, answer evaluation, completion summary)
- * - Sharp architectural minimalist design language (0px radius, 1px/2px borders)
- * - Setup launcher when no active session is loaded (Choose Resume & Job)
- * - Sidebar Context Panel (Target role, Active resume document, Live timer, Session progress)
- * - Main Q&A Workspace (Progress bar, AI question prompt, Textarea response box, AI Feedback)
- * - Real performance scorecard (100% computed from AI evaluations and answers)
+ * MockInterviewPage — AI Mock Interview Session & Scorecard
+ * - Choice of Text Interview or Voice Interview Session mode (Stitch AI Career Pro inspired)
+ * - Dynamic real-time Audio Waveform visualization for Voice mode
+ * - Connected strictly to backend /api/interviews (real score calculation, fallback score 00)
  */
 export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const {
@@ -31,6 +28,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
 
   const [selectedResumeId, setSelectedResumeId] = useState('')
   const [selectedJobId, setSelectedJobId] = useState('')
+  const [formatMode, setFormatMode] = useState('text') // 'text' | 'voice'
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [response, setResponse] = useState('')
   const [seconds, setSeconds] = useState(0)
@@ -40,24 +38,33 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const [questionTimeLeft, setQuestionTimeLeft] = useState(QUESTION_TIME)
 
   const {
-    sttSupported, listening, transcript, resetTranscript,
-    startListening, stopListening,
-    ttsSupported, speaking, speak, stopSpeaking,
+    sttSupported,
+    listening,
+    transcript,
+    resetTranscript,
+    startListening,
+    stopListening,
+    ttsSupported,
+    speaking,
+    speak,
+    stopSpeaking,
   } = useSpeech()
 
-  // Append new voice transcript into the response textarea
+  // Append voice transcript to response
   useEffect(() => {
     if (transcript) setResponse((prev) => prev + transcript)
     resetTranscript()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transcript])
 
-  // Auto-read each new question aloud when it appears
+  // Auto-read question aloud when it changes or in Voice Mode
   useEffect(() => {
-    if (currentQ?.question) speak(currentQ.question)
+    if (currentQ?.question) {
+      speak(currentQ.question)
+    }
     return () => stopSpeaking()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentQuestionIndex, interview?._id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionIndex, interview?._id, formatMode])
 
   const toggleMic = () => {
     if (listening) stopListening()
@@ -69,7 +76,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
   const isLastQuestion =
     activeQuestions.length > 0 && currentQuestionIndex === activeQuestions.length - 1
 
-  // Live session timer (counts up)
+  // Live session timer
   useEffect(() => {
     const interval = setInterval(() => {
       setSeconds((prev) => prev + 1)
@@ -77,7 +84,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
     return () => clearInterval(interval)
   }, [])
 
-  // Per-question countdown — resets every time the question index changes
+  // Per-question countdown
   useEffect(() => {
     if (!interview) return
     setQuestionTimeLeft(QUESTION_TIME)
@@ -92,7 +99,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
       })
     }, 1000)
     return () => clearInterval(interval)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestionIndex, interview?._id])
 
   const formatTime = (secs) => {
@@ -110,6 +117,9 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
       setCurrentQuestionIndex(0)
       setResponse('')
       setSeconds(0)
+      if (formatMode === 'voice' && sttSupported) {
+        startListening()
+      }
     }
   }
 
@@ -128,6 +138,9 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
     } else {
       setCurrentQuestionIndex((prev) => prev + 1)
       setResponse('')
+      if (formatMode === 'voice' && sttSupported) {
+        startListening()
+      }
     }
   }
 
@@ -150,14 +163,17 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
       ? ((currentQuestionIndex + 1) / activeQuestions.length) * 100
       : 0
 
-  // Real calculated score from current question state
+  // Real calculated score from evaluated answers
   const answeredScores = activeQuestions
     .map((q) => q.score)
     .filter((s) => typeof s === 'number')
-  const calculatedLiveScore =
+  
+  const rawScore =
     answeredScores.length > 0
       ? Math.round(answeredScores.reduce((a, b) => a + b, 0) / activeQuestions.length)
       : interview?.overallScore ?? 0
+
+  const formattedLiveScore = String(rawScore).padStart(2, '0')
 
   return (
     <div className="bg-[#f9f9f9] text-[#1b1b1b] h-screen w-screen overflow-hidden flex font-sans select-text">
@@ -172,12 +188,49 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
             AI CAREER PRO
           </div>
           <p className="text-xs text-[#5e5e5e] mt-1 uppercase tracking-widest font-semibold">
-            Mock Interview Session
+            {formatMode === 'voice' ? 'Voice Interview Session' : 'Text Interview Session'}
           </p>
         </div>
 
         {/* Session Context */}
         <div className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
+          {/* Format Selector Toggle */}
+          <div>
+            <span className="text-xs text-[#5e5e5e] uppercase tracking-wider block mb-2 font-semibold">
+              Interview Format
+            </span>
+            <div className="grid grid-cols-2 gap-1 p-1 bg-[#e2e2e2] border border-[#cfc4c5]">
+              <button
+                type="button"
+                onClick={() => setFormatMode('text')}
+                className={`py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                  formatMode === 'text'
+                    ? 'bg-black text-white'
+                    : 'text-[#5e5e5e] hover:text-black'
+                }`}
+              >
+                Text
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormatMode('voice')
+                  if (sttSupported && !listening) startListening()
+                }}
+                className={`py-1.5 text-xs font-semibold uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
+                  formatMode === 'voice'
+                    ? 'bg-black text-white'
+                    : 'text-[#5e5e5e] hover:text-black'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">graphic_eq</span>
+                Voice
+              </button>
+            </div>
+          </div>
+
+          <hr className="border-t border-[#cfc4c5] w-full" />
+
           {/* Target Role */}
           <div>
             <span className="text-xs text-[#5e5e5e] uppercase tracking-wider block mb-2 font-semibold">
@@ -225,7 +278,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
             </div>
           </div>
 
-          {/* Past Sessions Drawer */}
+          {/* Past Sessions */}
           {interviews.length > 0 && (
             <div>
               <span className="text-xs text-[#5e5e5e] uppercase tracking-wider block mb-2 font-semibold">
@@ -249,10 +302,8 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                   >
                     <div className="truncate font-semibold">{item.jobId?.title || 'Mock Session'}</div>
                     <div className="text-[10px] text-[#5e5e5e]">
-                      {item.status === 'completed' && typeof item.overallScore === 'number'
-                        ? `Score: ${item.overallScore}%`
-                        : item.status === 'completed'
-                        ? 'Completed'
+                      {item.status === 'completed'
+                        ? `Score: ${String(item.overallScore ?? 0).padStart(2, '0')}%`
                         : 'In Progress'}
                     </div>
                   </button>
@@ -262,7 +313,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
           )}
         </div>
 
-        {/* End Session Button */}
+        {/* Exit Session Button */}
         <div className="p-6 border-t border-[#cfc4c5] bg-[#f9f9f9]">
           <button
             type="button"
@@ -275,36 +326,49 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
         </div>
       </aside>
 
-      {/* Main Interview Canvas */}
+      {/* Main Canvas Workspace */}
       <main className="flex-1 flex flex-col h-full relative bg-[#f9f9f9]">
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 border-b border-[#cfc4c5] bg-[#f3f3f3]">
           <div>
             <h1 className="text-sm font-bold text-black tracking-tighter uppercase">AI CAREER PRO</h1>
             <p className="text-xs text-[#5e5e5e]">
-              {interview?.jobId?.title || 'Mock Interview Simulation'}
+              {formatMode === 'voice' ? 'Voice Session' : 'Text Session'} • {interview?.jobId?.title || 'Simulation'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onEndSession || (() => onNavigate && onNavigate('Dashboard'))}
-            className="p-2 border border-[#cfc4c5] text-black hover:bg-[#e8e8e8] transition-colors"
-          >
-            <span className="material-symbols-outlined text-lg">close</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFormatMode((m) => (m === 'voice' ? 'text' : 'voice'))}
+              className="px-2 py-1 border border-black text-xs font-semibold uppercase"
+            >
+              {formatMode === 'voice' ? 'Text Mode' : 'Voice Mode'}
+            </button>
+            <button
+              type="button"
+              onClick={onEndSession || (() => onNavigate && onNavigate('Dashboard'))}
+              className="p-1 border border-[#cfc4c5] text-black"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
         </div>
 
-        {/* Progress Indicator Bar */}
+        {/* Progress Bar Header */}
         {activeQuestions.length > 0 && (
           <div className="w-full bg-[#f9f9f9] border-b border-[#cfc4c5] pt-6 px-6 md:px-10 pb-4 flex-shrink-0">
             <div className="max-w-3xl mx-auto w-full">
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xs font-semibold text-black uppercase tracking-widest">
-                  Question {currentQuestionIndex + 1} of {activeQuestions.length}
+                <h2 className="text-xs font-semibold text-black uppercase tracking-widest flex items-center gap-2">
+                  <span>Question {currentQuestionIndex + 1} of {activeQuestions.length}</span>
+                  {formatMode === 'voice' && (
+                    <span className="px-2 py-0.5 bg-black text-white text-[10px] uppercase font-bold tracking-wider">
+                      VOICE SESSION
+                    </span>
+                  )}
                 </h2>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-[#5e5e5e] font-semibold">{currentQ?.type || 'Technical'}</span>
-                  {/* Per-question countdown */}
                   <span
                     className={`text-xs font-bold tabular-nums px-2 py-0.5 border ${
                       questionTimeLeft > 60
@@ -318,167 +382,226 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                   </span>
                 </div>
               </div>
-              {/* Question progress bar */}
               <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden mb-1">
                 <div
                   className="h-full bg-black transition-all duration-500 ease-in-out"
                   style={{ width: `${progressPercent}%` }}
                 ></div>
               </div>
-              {/* Per-question time bar */}
-              <div className="w-full h-1 bg-[#e2e2e2] overflow-hidden">
-                <div
-                  className="h-full transition-all duration-1000 ease-linear"
-                  style={{
-                    width: `${(questionTimeLeft / QUESTION_TIME) * 100}%`,
-                    backgroundColor:
-                      questionTimeLeft > 60 ? '#000000'
-                      : questionTimeLeft > 30 ? '#e6a817'
-                      : '#ba1a1a',
-                  }}
-                ></div>
-              </div>
             </div>
           </div>
         )}
 
-        {/* Scrollable Q&A Area */}
+        {/* Workspace Body: Voice Mode vs Text Mode */}
         <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8">
           {activeQuestions.length > 0 ? (
-            <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
-              {/* AI Question Area */}
-              <section className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 bg-black text-white flex items-center justify-center">
-                    <span className="material-symbols-outlined text-sm">smart_toy</span>
-                  </div>
-                  <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
-                    AI Interviewer
+            formatMode === 'voice' ? (
+              /* VOICE INTERVIEW SESSION UI (Stitch AI Career Pro Inspired) */
+              <div className="max-w-3xl mx-auto w-full flex flex-col items-center justify-between h-full py-4">
+                {/* AI Status Badge */}
+                <div className="flex items-center gap-2 px-4 py-2 border border-black bg-white shadow-sm">
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    speaking
+                      ? 'bg-blue-600 animate-ping'
+                      : listening
+                      ? 'bg-emerald-600 animate-pulse'
+                      : submitting
+                      ? 'bg-amber-600 animate-bounce'
+                      : 'bg-black'
+                  }`} />
+                  <span className="text-xs font-bold uppercase tracking-widest text-black">
+                    {speaking
+                      ? 'AI Interviewer Speaking…'
+                      : submitting
+                      ? 'Evaluating Voice Response…'
+                      : listening
+                      ? 'Listening to Candidate Voice…'
+                      : 'Mic Muted / Standby'}
                   </span>
-                  {ttsSupported && (
-                    <button
-                      type="button"
-                      title={speaking ? 'Stop reading' : 'Read question aloud'}
-                      onClick={() => speaking ? stopSpeaking() : speak(currentQ?.question)}
-                      className={`ml-auto p-1 transition-colors ${
-                        speaking ? 'text-black' : 'text-[#5e5e5e] hover:text-black'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-lg">
-                        {speaking ? 'stop_circle' : 'volume_up'}
-                      </span>
-                    </button>
-                  )}
                 </div>
-                <div className="border-l-2 border-black pl-6">
-                  <p className="text-xl md:text-2xl font-semibold text-black leading-relaxed">
-                    {currentQ?.question}
-                  </p>
-                </div>
-              </section>
 
-              {/* AI Previous Feedback If already answered */}
-              {currentQ?.feedback && (
-                <div className="p-4 bg-[#f3f3f3] border-l-4 border-black">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-black">
-                      AI Evaluation & Score
-                    </span>
-                    <span className="px-2 py-0.5 bg-black text-white text-xs font-bold">
-                      {typeof currentQ.score === 'number' ? `${currentQ.score}/100` : 'Evaluated'}
-                    </span>
+                {/* AI Audio Wave Visualizer Container */}
+                <div className="my-6 w-full flex flex-col items-center justify-center py-8 bg-[#f3f3f3] border-2 border-black relative">
+                  {/* Dynamic Soundwave Frequency Bars */}
+                  <div className="flex items-center justify-center gap-1.5 h-20 w-full px-8">
+                    {[40, 70, 30, 90, 60, 100, 50, 80, 45, 95, 35, 75, 65, 85, 55, 30, 90, 60].map((h, i) => (
+                      <div
+                        key={i}
+                        className={`w-1.5 bg-black transition-all duration-150 ${
+                          speaking || listening ? 'animate-pulse' : 'opacity-30'
+                        }`}
+                        style={{
+                          height: (speaking || listening) ? `${Math.max(12, (h * (i % 3 + 1)) % 80)}px` : '12px',
+                        }}
+                      />
+                    ))}
                   </div>
-                  <p className="text-xs text-[#4c4546]">{currentQ.feedback}</p>
-                </div>
-              )}
 
-              {/* User Answer Input Area */}
-              <section className="flex flex-col gap-2 flex-1 mt-2">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 border border-black text-black flex items-center justify-center bg-[#f9f9f9]">
-                      <span className="material-symbols-outlined text-sm">person</span>
-                    </div>
-                    <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
-                      Your Response
+                  {/* Mic Orb Action */}
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    className={`mt-4 w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all ${
+                      listening
+                        ? 'bg-black text-white border-black scale-105 shadow-lg'
+                        : 'bg-white text-black border-black hover:bg-[#e8e8e8]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl">
+                      {listening ? 'mic' : 'mic_off'}
                     </span>
-                  </div>
-                  {/* Formatting Tools */}
-                  <div className="hidden md:flex gap-2">
-                    <button
-                      type="button"
-                      className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
-                      title="Format Code"
-                      onClick={() => setResponse((r) => r + '\n```js\n// Code snippet\n```\n')}
-                    >
-                      <span className="material-symbols-outlined text-lg">code</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="p-1 text-[#5e5e5e] hover:text-black transition-colors"
-                      title="Bullet List"
-                      onClick={() => setResponse((r) => r + '\n- ')}
-                    >
-                      <span className="material-symbols-outlined text-lg">
-                        format_list_bulleted
-                      </span>
-                    </button>
-                  </div>
+                  </button>
+                  <span className="text-[11px] text-[#5e5e5e] uppercase tracking-wider font-semibold mt-2">
+                    {listening ? 'Voice Input Active' : 'Click Mic to Speak'}
+                  </span>
                 </div>
 
-                {/* Textarea Container */}
-                <div className="relative flex-1 min-h-[260px]">
-                  <textarea
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
-                    className="w-full h-full min-h-[260px] p-6 bg-[#f9f9f9] border border-[#7e7576] text-base text-black resize-none transition-all duration-200 focus:border-2 focus:border-black focus:outline-none"
-                    placeholder="Structure your response clearly using the STAR method (Situation, Task, Action, Result)..."
-                    spellCheck="false"
-                  ></textarea>
-
-                  {/* Word count & Mic toggle */}
-                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                    <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold pointer-events-none">
-                      {wordCount} words
+                {/* Current Question Display */}
+                <div className="w-full text-center mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#5e5e5e]">
+                      AI Question Prompt
                     </span>
-                    {sttSupported ? (
+                    {ttsSupported && (
                       <button
                         type="button"
-                        title={listening ? 'Stop voice input' : 'Start voice input'}
-                        onClick={toggleMic}
-                        className={`flex items-center gap-1 px-2.5 py-1 border font-semibold text-xs transition-all ${
-                          listening
-                            ? 'border-black bg-black text-white'
-                            : 'border-[#cfc4c5] bg-[#f9f9f9] text-[#5e5e5e] hover:border-black hover:text-black'
-                        }`}
+                        onClick={() => speaking ? stopSpeaking() : speak(currentQ?.question)}
+                        className="text-xs underline font-semibold text-black hover:opacity-75"
                       >
-                        <span className={`material-symbols-outlined text-sm ${
-                          listening ? 'animate-pulse' : ''
-                        }`}>
-                          {listening ? 'mic' : 'mic_off'}
-                        </span>
-                        <span>{listening ? 'Listening…' : 'Voice'}</span>
+                        {speaking ? 'Stop Audio' : 'Replay Voice'}
                       </button>
-                    ) : (
-                      <div className="flex items-center gap-1 text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold text-xs pointer-events-none">
-                        <span className="material-symbols-outlined text-sm">mic_off</span>
-                        <span>No mic</span>
-                      </div>
                     )}
                   </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-black leading-relaxed">
+                    "{currentQ?.question}"
+                  </h3>
+                </div>
+
+                {/* Real-time Voice Transcript Box */}
+                <div className="w-full bg-white border border-[#7e7576] p-4 flex flex-col gap-2 min-h-[120px]">
+                  <div className="flex justify-between items-center text-xs text-[#5e5e5e]">
+                    <span className="font-semibold uppercase tracking-wider">Live Transcript</span>
+                    <span>{wordCount} words</span>
+                  </div>
+                  <p className="text-sm text-black font-medium leading-normal italic min-h-[50px]">
+                    {response || 'Start speaking to record your answer automatically via voice recognition…'}
+                  </p>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
+                  <div className="w-full mt-2 p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
                     {error}
                   </div>
                 )}
-              </section>
-            </div>
+              </div>
+            ) : (
+              /* TEXT INTERVIEW SESSION UI */
+              <div className="max-w-3xl mx-auto w-full flex flex-col gap-6 h-full">
+                {/* AI Question Section */}
+                <section className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 bg-black text-white flex items-center justify-center">
+                      <span className="material-symbols-outlined text-sm">smart_toy</span>
+                    </div>
+                    <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
+                      AI Interviewer
+                    </span>
+                    {ttsSupported && (
+                      <button
+                        type="button"
+                        title={speaking ? 'Stop reading' : 'Read question aloud'}
+                        onClick={() => speaking ? stopSpeaking() : speak(currentQ?.question)}
+                        className={`ml-auto p-1 transition-colors ${
+                          speaking ? 'text-black' : 'text-[#5e5e5e] hover:text-black'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          {speaking ? 'stop_circle' : 'volume_up'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="border-l-2 border-black pl-6">
+                    <p className="text-xl md:text-2xl font-semibold text-black leading-relaxed">
+                      {currentQ?.question}
+                    </p>
+                  </div>
+                </section>
+
+                {/* AI Previous Feedback If Evaluated */}
+                {currentQ?.feedback && (
+                  <div className="p-4 bg-[#f3f3f3] border-l-4 border-black">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-black">
+                        AI Evaluation & Score
+                      </span>
+                      <span className="px-2 py-0.5 bg-black text-white text-xs font-bold">
+                        {typeof currentQ.score === 'number'
+                          ? `${String(currentQ.score).padStart(2, '0')}/100`
+                          : '00/100'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#4c4546]">{currentQ.feedback}</p>
+                  </div>
+                )}
+
+                {/* Text Response Area */}
+                <section className="flex flex-col gap-2 flex-1 mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border border-black text-black flex items-center justify-center bg-[#f9f9f9]">
+                        <span className="material-symbols-outlined text-sm">person</span>
+                      </div>
+                      <span className="text-xs text-[#5e5e5e] uppercase tracking-wider font-semibold">
+                        Your Response
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative flex-1 min-h-[260px]">
+                    <textarea
+                      value={response}
+                      onChange={(e) => setResponse(e.target.value)}
+                      className="w-full h-full min-h-[260px] p-6 bg-[#f9f9f9] border border-[#7e7576] text-base text-black resize-none transition-all duration-200 focus:border-2 focus:border-black focus:outline-none"
+                      placeholder="Type your response or use voice dictation..."
+                      spellCheck="false"
+                    ></textarea>
+
+                    <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                      <span className="text-xs text-[#5e5e5e] bg-[#f9f9f9] px-2.5 py-1 border border-[#cfc4c5] font-semibold pointer-events-none">
+                        {wordCount} words
+                      </span>
+                      {sttSupported && (
+                        <button
+                          type="button"
+                          onClick={toggleMic}
+                          className={`flex items-center gap-1 px-2.5 py-1 border font-semibold text-xs transition-all ${
+                            listening
+                              ? 'border-black bg-black text-white'
+                              : 'border-[#cfc4c5] bg-[#f9f9f9] text-[#5e5e5e] hover:border-black'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {listening ? 'mic' : 'mic_off'}
+                          </span>
+                          <span>{listening ? 'Listening…' : 'Voice'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
+                      {error}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )
           ) : (
             <div className="flex items-center justify-center h-full text-center">
               <span className="text-sm text-[#5e5e5e]">
-                No active interview session loaded. Please start a new session below.
+                No active interview session loaded. Please select options to start below.
               </span>
             </div>
           )}
@@ -519,14 +642,14 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
           </div>
         )}
 
-        {/* Modal: Start New Custom AI Mock Interview */}
+        {/* Modal: Choose Resume, Job & Interview Format */}
         {!interview && (
           <div className="absolute inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
             <div className="bg-[#f9f9f9] border-2 border-black max-w-md w-full p-6 flex flex-col gap-6 shadow-2xl">
               <div>
                 <h3 className="text-xl font-bold text-black">Start AI Mock Interview</h3>
                 <p className="text-xs text-[#5e5e5e] mt-1">
-                  Select your active resume and target role to generate tailor-made interview questions.
+                  Select your resume, target role, and interview format to generate tailor-made questions.
                 </p>
               </div>
 
@@ -541,7 +664,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     required
                     className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
                   >
-                    <option value="">-- Choose Resume --</option>
+                    <option value="">-- Choose PDF Resume --</option>
                     {resumes.map((r) => (
                       <option key={r._id || r.id} value={r._id || r.id}>
                         {r.fileName || r.name}
@@ -552,7 +675,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-black">
-                    Target Job Description
+                    Target Job Role
                   </label>
                   <select
                     value={selectedJobId}
@@ -560,13 +683,57 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     required
                     className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
                   >
-                    <option value="">-- Choose Job --</option>
+                    <option value="">-- Choose Job Description --</option>
                     {jobs.map((j) => (
                       <option key={j._id || j.id} value={j._id || j.id}>
                         {j.title}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Format Selection Card Options */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black">
+                    Interview Mode
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormatMode('text')}
+                      className={`p-3 border text-left flex flex-col justify-between transition-all ${
+                        formatMode === 'text'
+                          ? 'border-2 border-black bg-white font-bold'
+                          : 'border-[#cfc4c5] bg-[#f3f3f3] text-[#5e5e5e] hover:border-black'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 text-sm text-black">
+                        <span className="material-symbols-outlined text-base">edit_note</span>
+                        <span>Text Interview</span>
+                      </div>
+                      <span className="text-[10px] text-[#5e5e5e] mt-2">
+                        Written response Q&A workspace with optional audio assist
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormatMode('voice')}
+                      className={`p-3 border text-left flex flex-col justify-between transition-all ${
+                        formatMode === 'voice'
+                          ? 'border-2 border-black bg-white font-bold'
+                          : 'border-[#cfc4c5] bg-[#f3f3f3] text-[#5e5e5e] hover:border-black'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 text-sm text-black">
+                        <span className="material-symbols-outlined text-base">graphic_eq</span>
+                        <span>Voice Session</span>
+                      </div>
+                      <span className="text-[10px] text-[#5e5e5e] mt-2">
+                        Live audio voice simulation inspired by AI Career Pro
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
@@ -588,7 +755,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     disabled={starting || resumes.length === 0 || jobs.length === 0}
                     className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-wider py-3 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
                   >
-                    {starting ? 'Generating AI Questions…' : 'START INTERVIEW'}
+                    {starting ? 'Generating AI Session…' : `START ${formatMode.toUpperCase()} INTERVIEW`}
                   </button>
                 </div>
               </form>
@@ -596,7 +763,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
           </div>
         )}
 
-        {/* Modal: Interview Performance Scorecard */}
+        {/* Scorecard Modal */}
         {showSummaryModal && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div className="bg-[#f9f9f9] border-2 border-black max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-6">
@@ -617,7 +784,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     Overall Performance
                   </span>
                   <h4 className="text-2xl font-bold mt-1">
-                    {calculatedLiveScore}% Career Readiness Score
+                    {formattedLiveScore}% Career Readiness Score
                   </h4>
                 </div>
                 <div className="px-3 py-1 bg-white text-black text-xs font-bold uppercase tracking-wider">
@@ -653,7 +820,9 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                             Q{idx + 1}: {q.type || 'Question'}
                           </span>
                           <span className="px-2 py-0.5 bg-[#e8e8e8] border border-[#cfc4c5]">
-                            {typeof q.score === 'number' ? `${q.score}/100` : 'Skipped'}
+                            {typeof q.score === 'number'
+                              ? `${String(q.score).padStart(2, '0')}/100`
+                              : '00/100'}
                           </span>
                         </div>
                         <p className="text-[#5e5e5e] truncate">{q.question}</p>

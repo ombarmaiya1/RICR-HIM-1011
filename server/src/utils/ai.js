@@ -145,8 +145,8 @@ Give a score from 0 to 100 and concise, constructive feedback.
   } catch (err) {
     console.warn("AI evaluateAnswer warning:", err.message);
     return {
-      score: 80,
-      feedback: "Solid response with clear explanation and relevance to the topic.",
+      score: 0,
+      feedback: "AI evaluation unavailable. Fallback score set to 00.",
     };
   }
 };
