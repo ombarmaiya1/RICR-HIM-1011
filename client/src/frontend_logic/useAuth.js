@@ -39,6 +39,7 @@ export default function useAuth() {
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
+      localStorage.removeItem('token')
       setUser(null)
       setAuthed(false)
       if (onSuccess) onSuccess()

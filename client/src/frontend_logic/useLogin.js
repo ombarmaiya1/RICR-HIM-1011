@@ -13,7 +13,10 @@ export default function useLogin() {
     setError('')
     setLoading(true)
     try {
-      await api.post('/auth/login', { email, password })
+      const res = await api.post('/auth/login', { email, password })
+      if (res.data?.token) {
+        localStorage.setItem('token', res.data.token)
+      }
       if (onSuccess) onSuccess()
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
