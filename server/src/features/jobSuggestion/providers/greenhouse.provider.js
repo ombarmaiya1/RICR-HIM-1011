@@ -20,30 +20,33 @@ const stripHtml = (html = "") =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 export const searchGreenhouseJobs = async ({ query = "" }) => {
-  const results = [];
   const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
 
-  for (const company of GREENHOUSE_COMPANIES) {
+  const fetchCompanyJobs = async (company) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     try {
       const url = `https://boards-api.greenhouse.io/v1/boards/${company.token}/jobs?content=true`;
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-      if (!response.ok) continue;
+      if (!response.ok) return [];
 
       const data = await response.json();
       const jobs = data.jobs || [];
+      const companyResults = [];
 
       for (const job of jobs) {
         const plainDesc = stripHtml(job.content || "");
         const searchableText = `${job.title || ""} ${plainDesc} ${job.location?.name || ""}`.toLowerCase();
 
-        // Keyword filter if query terms provided
         if (queryTerms.length > 0) {
           const isMatch = queryTerms.some(term => searchableText.includes(term));
           if (!isMatch) continue;
         }
 
-        results.push({
+        companyResults.push({
           title: job.title || "Untitled Position",
           company: company.name,
           location: job.location?.name || "Remote / Multiple",
@@ -56,11 +59,27 @@ export const searchGreenhouseJobs = async ({ query = "" }) => {
           applyUrl: job.absolute_url || "",
           postedAt: job.updated_at ? new Date(job.updated_at) : null,
         });
+
+        // Limit per company to prevent payload explosion
+        if (companyResults.length >= 4) break;
       }
-    } catch (error) {
-      console.error(`Greenhouse error for ${company.name}:`, error.message);
+      return companyResults;
+    } catch {
+      clearTimeout(timeoutId);
+      return [];
     }
-  }
+  };
+
+  const resultsArray = await Promise.allSettled(
+    GREENHOUSE_COMPANIES.map(company => fetchCompanyJobs(company))
+  );
+
+  const results = [];
+  resultsArray.forEach(res => {
+    if (res.status === "fulfilled" && Array.isArray(res.value)) {
+      results.push(...res.value);
+    }
+  });
 
   return results;
-};
+};
