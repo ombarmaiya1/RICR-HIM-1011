@@ -120,25 +120,25 @@ const completeInterview = async (req, res, next) => {
     let overallScore = 0;
     let summary = "";
 
-    try {
-      const result = await generateInterviewSummary(interview.questions);
-      if (result && typeof result.overallScore === "number") {
-        overallScore = result.overallScore;
-        summary = result.summary;
-      }
-    } catch (aiError) {
-      console.error("AI summary invocation failed, falling back to computed score:", aiError);
-    }
-
-    // Always guarantee mathematically accurate score from evaluations
+    // Always compute the overall score from actual evaluated answers
     const validScores = interview.questions
       .map((q) => q.score)
       .filter((s) => typeof s === "number");
 
-    if (!overallScore && validScores.length > 0) {
+    if (validScores.length > 0) {
       overallScore = Math.round(
         validScores.reduce((sum, s) => sum + s, 0) / interview.questions.length
       );
+    }
+
+    // Use AI only to generate the summary text, not the numerical score
+    try {
+      const result = await generateInterviewSummary(interview.questions);
+      if (result && result.summary) {
+        summary = result.summary;
+      }
+    } catch (aiError) {
+      console.error("AI summary invocation failed, using computed summary:", aiError);
     }
 
     if (!summary) {

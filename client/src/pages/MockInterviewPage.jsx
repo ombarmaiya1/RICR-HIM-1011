@@ -155,10 +155,9 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
     .map((q) => q.score)
     .filter((s) => typeof s === 'number')
   const calculatedLiveScore =
-    interview?.overallScore ??
-    (answeredScores.length > 0
+    answeredScores.length > 0
       ? Math.round(answeredScores.reduce((a, b) => a + b, 0) / activeQuestions.length)
-      : 0)
+      : interview?.overallScore ?? 0
 
   return (
     <div className="bg-[#f9f9f9] text-[#1b1b1b] h-screen w-screen overflow-hidden flex font-sans select-text">

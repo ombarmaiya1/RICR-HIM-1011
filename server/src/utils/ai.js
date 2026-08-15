@@ -153,7 +153,6 @@ Give a score from 0 to 100 and concise, constructive feedback.
 
 
 const interviewSummarySchema = z.object({
-  overallScore: z.number().min(0).max(100),
   summary: z.string(),
 });
 
@@ -191,8 +190,7 @@ Return the result as structured data.
   } catch (err) {
     console.warn("AI generateInterviewSummary warning:", err.message);
     return {
-      overallScore: 82,
-      summary: "Candidate demonstrated strong communication and solid domain knowledge throughout the interview.",
+      summary: "Interview completed. Review individual question scores for detailed performance insights.",
     };
   }
 };
