@@ -1,18 +1,15 @@
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import useAnalysis from '../frontend_logic/useAnalysis'
 import useResumes from '../frontend_logic/useResumes'
 import useJobs from '../frontend_logic/useJobs'
+import useATS from '../frontend_logic/useATS'
 import Navbar from '../components/Navbar'
 
 /**
- * DashboardPage (Analysis) — Match Scoring & Skill Gap Analysis
- * - Connected to backend /api/analysis
- * - Pure dynamic data directly from AI analysis records (No static mock data)
+ * DashboardPage (Analysis) — AI Match Scoring, Skill Gap Analysis & ATS Compatibility
+ * - Connected to backend /api/analysis & /api/ats/check
+ * - Dynamic ATS document health score, section parsing, keyword coverage, and format warnings
  * - Interactive Resume + Job selector to trigger real-time AI skill match
- * - Match score circle / counter, Matched Skills, Missing Skills, Actionable Suggestions
- * - Past analyses switcher
- * - Empty state with quick analysis launcher
- * - Footer
  */
 export default function DashboardPage({ onLogout, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Analysis')
@@ -22,17 +19,17 @@ export default function DashboardPage({ onLogout, onNavigate }) {
     setCurrentAnalysis,
     loading,
     analyzing,
-    error: analysisError,
     runAnalysis,
   } = useAnalysis()
   const { resumes } = useResumes()
   const { jobs } = useJobs()
+  const { atsData, loading: atsLoading, runATSCheck } = useATS()
 
   const [selectedResumeId, setSelectedResumeId] = useState('')
   const [selectedJobId, setSelectedJobId] = useState('')
   const [showNewAnalysisModal, setShowNewAnalysisModal] = useState(false)
 
-  // Auto-prefill selected resume and job from active localStorage context or first available item
+  // Auto-prefill selected resume and job
   useEffect(() => {
     if (resumes.length > 0 && !selectedResumeId) {
       const activeRes = localStorage.getItem('activeResumeId')
@@ -53,6 +50,18 @@ export default function DashboardPage({ onLogout, onNavigate }) {
     }
   }, [resumes, jobs, selectedResumeId, selectedJobId])
 
+  // Automatically trigger backend ATS check when active analysis changes
+  useEffect(() => {
+    if (currentAnalysis) {
+      const rId = currentAnalysis.resumeId?._id || currentAnalysis.resumeId?.id || currentAnalysis.resumeId
+      const jId = currentAnalysis.jobId?._id || currentAnalysis.jobId?.id || currentAnalysis.jobId
+      if (rId) {
+        runATSCheck(rId, jId)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAnalysis?._id])
+
   const handleTabClick = (item) => {
     setActiveTab(item)
     if (onNavigate) onNavigate(item)
@@ -63,6 +72,9 @@ export default function DashboardPage({ onLogout, onNavigate }) {
     const res = await runAnalysis(selectedResumeId, selectedJobId)
     if (res) {
       setShowNewAnalysisModal(false)
+      const rId = res.resumeId?._id || res.resumeId?.id || res.resumeId || selectedResumeId
+      const jId = res.jobId?._id || res.jobId?.id || res.jobId || selectedJobId
+      runATSCheck(rId, jId)
       setSelectedResumeId('')
       setSelectedJobId('')
     }
@@ -91,11 +103,11 @@ export default function DashboardPage({ onLogout, onNavigate }) {
         <div className="mb-12 border-b border-[#cfc4c5] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-[32px] font-semibold text-black mb-2 leading-tight">
-              {currentAnalysis ? jobTitle : 'Match & Skill Gap Analysis'}
+              {currentAnalysis ? jobTitle : 'Match & ATS Compatibility Analysis'}
             </h1>
             <p className="text-base text-[#5e5e5e]">
               {currentAnalysis
-                ? `Resume: ${resumeFileName} vs. Job Description Alignment`
+                ? `Resume: ${resumeFileName} vs. Job Description Alignment & ATS Parsing Verification`
                 : 'Evaluate alignment between your resume and target job requirements using AI.'}
             </p>
           </div>
@@ -120,7 +132,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
             <button
               type="button"
               onClick={() => setShowNewAnalysisModal(true)}
-              className="px-4 py-2 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">add</span>
               New Match Analysis
@@ -135,7 +147,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
               progress_activity
             </span>
             <span className="text-sm font-semibold text-[#5e5e5e]">
-              Loading match analysis records…
+              Loading match analysis and ATS compatibility records…
             </span>
           </div>
         )}
@@ -143,7 +155,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
         {/* Active Analysis Dashboard Grid */}
         {!loading && currentAnalysis && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Score & Summary */}
+            {/* Left Column: Match Score, ATS Summary & Practice CTA */}
             <div className="lg:col-span-4 flex flex-col gap-6">
               {/* Overall Match Score */}
               <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6 flex flex-col items-center justify-center text-center">
@@ -162,6 +174,55 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                 </div>
               </div>
 
+              {/* ATS Compatibility Badge Card */}
+              {atsData && (
+                <div className="bg-white border-2 border-black p-6 flex flex-col gap-3">
+                  <div className="flex justify-between items-center border-b border-[#cfc4c5] pb-3">
+                    <span className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest">
+                      ATS System Compatibility
+                    </span>
+                    <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
+                      atsData.score >= 80
+                        ? 'bg-black text-white'
+                        : atsData.score >= 60
+                        ? 'bg-[#e8e8e8] border border-black text-black'
+                        : 'bg-[#ffdad6] border border-[#ba1a1a] text-[#93000a]'
+                    }`}>
+                      {atsData.status || 'Evaluated'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between pt-2">
+                    <span className="text-3xl font-bold text-black">{atsData.score ?? 0}%</span>
+                    <span className="text-xs text-[#5e5e5e] font-semibold">Parser Pass Index</span>
+                  </div>
+
+                  {/* 5-Dimension Progress Meters */}
+                  <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-[#cfc4c5]">
+                    {[
+                      { label: 'Readability', val: atsData.breakdown?.document },
+                      { label: 'Section Structure', val: atsData.breakdown?.structure },
+                      { label: 'Format Compliance', val: atsData.breakdown?.formatting },
+                      { label: 'Keyword Coverage', val: atsData.breakdown?.keywords },
+                      { label: 'Content Depth', val: atsData.breakdown?.content },
+                    ].map((item) => (
+                      <div key={item.label} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-[11px] font-semibold text-[#1b1b1b]">
+                          <span>{item.label}</span>
+                          <span>{item.val ?? 0}%</span>
+                        </div>
+                        <div className="w-full h-1 bg-[#e8e8e8] overflow-hidden">
+                          <div
+                            className="h-full bg-black transition-all duration-500"
+                            style={{ width: `${item.val ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Analysis Summary */}
               <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-6">
                 <h2 className="text-xl font-semibold text-black mb-4 border-b border-[#cfc4c5] pb-2">
@@ -172,7 +233,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                 </p>
               </div>
 
-              {/* Quick action to launch mock interview */}
+              {/* Practice CTA */}
               <div className="bg-black text-white p-6 border-2 border-black flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-[#cfc4c5]">
                   <span className="material-symbols-outlined text-sm">mic</span>
@@ -187,14 +248,14 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                 <button
                   type="button"
                   onClick={() => handleTabClick('Interviews')}
-                  className="w-full bg-white text-black py-3 mt-2 text-xs font-semibold uppercase tracking-wider hover:bg-[#e8e8e8] transition-colors"
+                  className="w-full bg-white text-black py-3 mt-2 text-xs font-semibold uppercase tracking-wider hover:bg-[#e8e8e8] transition-colors cursor-pointer"
                 >
                   Start Mock Interview
                 </button>
               </div>
             </div>
 
-            {/* Right Column: Skills & Actions */}
+            {/* Right Column: Skills, Actionable Suggestions & ATS Issues */}
             <div className="lg:col-span-8 flex flex-col gap-6">
               {/* Skills Bento Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -281,6 +342,113 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                   )}
                 </ul>
               </div>
+
+              {/* ATS Document Health & Issues Panel */}
+              <div className="bg-[#f9f9f9] border-2 border-black p-6 flex flex-col gap-6">
+                <div className="flex justify-between items-center border-b border-[#cfc4c5] pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-black uppercase tracking-tight flex items-center gap-2">
+                      <span className="material-symbols-outlined text-black">rule</span>
+                      ATS Document Health & Parser Audit
+                    </h3>
+                    <p className="text-xs text-[#5e5e5e] mt-1">
+                      Automated audit of document formatting, contact information, and ATS section headers
+                    </p>
+                  </div>
+                  {atsLoading && (
+                    <span className="material-symbols-outlined animate-spin text-black">sync</span>
+                  )}
+                </div>
+
+                {/* Detected ATS Issues */}
+                {atsData && atsData.issues && atsData.issues.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-[#5e5e5e]">
+                      Detected Formatting & Content Warnings ({atsData.issues.length})
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      {atsData.issues.map((issue, i) => (
+                        <div
+                          key={i}
+                          className="bg-white border border-[#cfc4c5] p-4 flex flex-col gap-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-black flex items-center gap-2">
+                              <span className="material-symbols-outlined text-base">
+                                {issue.severity === 'high' ? 'error' : 'warning'}
+                              </span>
+                              {issue.title}
+                            </span>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              issue.severity === 'high'
+                                ? 'bg-[#ffdad6] text-[#93000a] border border-[#ba1a1a]'
+                                : issue.severity === 'medium'
+                                ? 'bg-[#fff8ed] text-[#a36800] border border-[#e6a817]'
+                                : 'bg-[#e8e8e8] text-black border border-[#cfc4c5]'
+                            }`}>
+                              {issue.severity} priority
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#4c4546]">{issue.description}</p>
+                          <div className="mt-1 pt-2 border-t border-[#f0f0f0] text-xs font-semibold text-black flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">lightbulb</span>
+                            <span>Fix: {issue.suggestion}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-white border border-[#cfc4c5] text-xs text-[#5e5e5e] font-semibold text-center">
+                    ✓ Clean document audit! No high-priority ATS parsing formatting issues detected.
+                  </div>
+                )}
+
+                {/* ATS Keyword Breakdown */}
+                {atsData && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-[#cfc4c5] pt-4">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-black mb-2">
+                        Matched ATS Keywords ({atsData.matchedKeywords?.length || 0})
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {atsData.matchedKeywords && atsData.matchedKeywords.length > 0 ? (
+                          atsData.matchedKeywords.map((kw, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-semibold px-2 py-1 bg-white border border-[#cfc4c5] text-black lowercase"
+                            >
+                              ✓ {kw}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-[#5e5e5e]">No specific keywords matched.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-[#5e5e5e] mb-2">
+                        Missing ATS Keywords ({atsData.missingKeywords?.length || 0})
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {atsData.missingKeywords && atsData.missingKeywords.length > 0 ? (
+                          atsData.missingKeywords.slice(0, 12).map((kw, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-semibold px-2 py-1 bg-[#ffdad6] border border-[#ba1a1a] text-[#93000a] lowercase"
+                            >
+                              ✕ {kw}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-[#5e5e5e]">All key terms matched!</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -294,38 +462,31 @@ export default function DashboardPage({ onLogout, onNavigate }) {
             <div>
               <h2 className="text-2xl font-bold text-black mb-2">No Match Analyses Yet</h2>
               <p className="text-sm text-[#5e5e5e] leading-relaxed">
-                Upload your resume and select a target job position to generate a detailed AI match score, skill gap evaluation, and actionable recommendations.
+                Upload your resume and select a target job position to generate a detailed AI match score, ATS compatibility audit, and actionable recommendations.
               </p>
             </div>
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => handleTabClick('Resumes')}
-                className="px-4 py-3 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider hover:border-black"
-              >
-                Manage Resumes
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowNewAnalysisModal(true)}
-                className="px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b]"
+                className="px-6 py-3 bg-black text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#1b1b1b] transition-colors cursor-pointer"
               >
-                Run Match Analysis
+                Run First Analysis
               </button>
             </div>
           </div>
         )}
 
-        {/* Modal: Create New Match Analysis */}
+        {/* Modal: New Analysis Launcher */}
         {showNewAnalysisModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-[#f9f9f9] border-2 border-black max-w-lg w-full p-6 flex flex-col gap-6">
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f9f9f9] border-2 border-black max-w-md w-full p-6 flex flex-col gap-6 shadow-2xl">
               <div className="flex justify-between items-center border-b border-[#cfc4c5] pb-3">
-                <h3 className="text-lg font-semibold text-black">Run New Match Analysis</h3>
+                <h3 className="text-xl font-bold text-black">New Match & ATS Analysis</h3>
                 <button
                   type="button"
                   onClick={() => setShowNewAnalysisModal(false)}
-                  className="p-1 text-[#5e5e5e] hover:text-black"
+                  className="p-1 text-[#5e5e5e] hover:text-black cursor-pointer"
                 >
                   <span className="material-symbols-outlined">close</span>
                 </button>
@@ -334,7 +495,7 @@ export default function DashboardPage({ onLogout, onNavigate }) {
               <form onSubmit={handleRunAnalysis} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-black">
-                    Select Active Resume
+                    Select Resume Document *
                   </label>
                   <select
                     value={selectedResumeId}
@@ -342,23 +503,18 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                     required
                     className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
                   >
-                    <option value="">-- Choose Resume Document --</option>
+                    <option value="">-- Choose Resume --</option>
                     {resumes.map((r) => (
                       <option key={r._id || r.id} value={r._id || r.id}>
                         {r.fileName || r.name}
                       </option>
                     ))}
                   </select>
-                  {resumes.length === 0 && (
-                    <span className="text-[11px] text-[#ba1a1a]">
-                      No resumes uploaded. Please upload a resume first.
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-black">
-                    Select Target Job
+                    Select Target Job Role *
                   </label>
                   <select
                     value={selectedJobId}
@@ -366,40 +522,29 @@ export default function DashboardPage({ onLogout, onNavigate }) {
                     required
                     className="w-full bg-white border border-[#cfc4c5] p-3 text-sm text-black focus:outline-none focus:border-black"
                   >
-                    <option value="">-- Choose Target Job --</option>
+                    <option value="">-- Choose Job Description --</option>
                     {jobs.map((j) => (
                       <option key={j._id || j.id} value={j._id || j.id}>
                         {j.title}
                       </option>
                     ))}
                   </select>
-                  {jobs.length === 0 && (
-                    <span className="text-[11px] text-[#ba1a1a]">
-                      No saved jobs. Please save a job in Job Management first.
-                    </span>
-                  )}
                 </div>
 
-                {analysisError && (
-                  <div className="p-3 bg-[#fdf2f2] border border-[#ba1a1a] text-[#ba1a1a] text-xs font-semibold">
-                    {analysisError}
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-4 border-t border-[#cfc4c5]">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowNewAnalysisModal(false)}
-                    className="px-4 py-3 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider"
+                    className="px-4 py-3 border border-[#7e7576] text-black text-xs font-semibold uppercase tracking-wider cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={analyzing || resumes.length === 0 || jobs.length === 0}
-                    className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-wider py-3 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50"
+                    disabled={analyzing || !selectedResumeId || !selectedJobId}
+                    className="flex-1 bg-black text-white text-xs font-semibold uppercase tracking-wider py-3 hover:bg-[#1b1b1b] transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    {analyzing ? 'Evaluating Alignment with AI…' : 'RUN ANALYSIS'}
+                    {analyzing ? 'Analyzing Match & ATS…' : 'RUN ATS ANALYSIS'}
                   </button>
                 </div>
               </form>
@@ -409,19 +554,19 @@ export default function DashboardPage({ onLogout, onNavigate }) {
       </main>
 
       {/* Footer */}
-      <footer className="w-full mt-12 bg-[#f3f3f3] border-t border-[#cfc4c5]">
-        <div className="flex flex-col md:flex-row justify-between items-center py-6 px-10 max-w-[1280px] mx-auto gap-4">
-          <div className="text-xs font-bold text-black uppercase tracking-widest">
-            © 2024 AI CAREER PRO. ALL RIGHTS RESERVED.
+      <footer className="bg-[#f3f3f3] w-full mt-16 border-t border-[#cfc4c5]">
+        <div className="flex flex-col md:flex-row justify-between items-center py-6 px-4 md:px-10 max-w-[1280px] mx-auto gap-4 text-xs">
+          <div className="text-[#4c4546] uppercase font-bold tracking-widest">
+            © 2024 ARCHITECT AI. ALL RIGHTS RESERVED.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="text-xs text-[#4c4546] hover:underline">
+            <a href="#" className="text-[#4c4546] hover:text-black hover:underline transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="text-xs text-[#4c4546] hover:underline">
+            <a href="#" className="text-[#4c4546] hover:text-black hover:underline transition-colors">
               Terms of Service
             </a>
-            <a href="#" className="text-xs text-[#4c4546] hover:underline">
+            <a href="#" className="text-[#4c4546] hover:text-black hover:underline transition-colors">
               Contact Support
             </a>
           </div>

@@ -2,11 +2,7 @@ import Resume from "../resume/resume.model.js";
 import Job from "../job/job.model.js";
 import { runATSCheck } from "./ats.service.js";
 
-export const checkATSCompatibility = async (
-  req,
-  res,
-  next
-) => {
+export const checkATSCompatibility = async (req, res, next) => {
   try {
     const { resumeId, jobId } = req.body;
 
@@ -16,9 +12,11 @@ export const checkATSCompatibility = async (
       });
     }
 
+    const userId = req.user.userId || req.user._id;
+
     const resume = await Resume.findOne({
       _id: resumeId,
-      user: req.user.userId,
+      $or: [{ userId }, { user: userId }],
     });
 
     if (!resume) {
@@ -32,23 +30,16 @@ export const checkATSCompatibility = async (
     if (jobId) {
       job = await Job.findOne({
         _id: jobId,
-        user: req.user.userId,
+        $or: [{ userId }, { user: userId }],
       });
-
-      if (!job) {
-        return res.status(404).json({
-          message: "Job not found",
-        });
-      }
     }
 
     const result = await runATSCheck({
-      userId: req.user._id,
+      userId,
       resumeId: resume._id,
-      resumeText: resume.extractedText,
+      resumeText: resume.extractedText || "",
       jobId: job?._id || null,
-      jobDescription:
-        job?.description || "",
+      jobDescription: job?.description || "",
     });
 
     return res.status(200).json({
