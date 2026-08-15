@@ -392,25 +392,25 @@ export default function JobSuggestionsPage({ onLogout, onNavigate }) {
                               <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-[#4c4546] font-medium">
                                 <span className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-sm text-[#7e7576]">business</span>
-                                  {job.company || 'Nexus Data Corp'}
+                                  {job.company || 'Unknown Company'}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-sm text-[#7e7576]">location_on</span>
-                                  {job.location || 'Remote (US)'}
+                                  {job.location || 'Not specified'}
                                 </span>
-                                {(job.salaryRange || job.salary) && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm text-[#7e7576]">payments</span>
-                                    {job.salaryRange || job.salary || '$180k - $220k'}
-                                  </span>
-                                )}
+                              {(job.salaryRange || job.salary) && (
+                                <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm text-[#7e7576]">payments</span>
+                                  {job.salaryRange || job.salary}
+                                </span>
+                              )}
                               </div>
                             </div>
 
                             {/* Prominent Match Score */}
                             <div className="flex flex-col items-end flex-shrink-0">
                               <span className="text-3xl md:text-4xl font-bold text-black leading-none">
-                                {job.matchScore ?? 94}%
+                                {job.matchScore ?? 0}%
                               </span>
                               <span className="text-[10px] text-[#4c4546] uppercase tracking-widest mt-1">
                                 Match Index
@@ -422,9 +422,7 @@ export default function JobSuggestionsPage({ onLogout, onNavigate }) {
                           <div className="bg-[#f9f9f9] border border-[#cfc4c5] p-4">
                             <p className="text-xs text-[#1b1b1b] leading-relaxed">
                               <strong className="font-bold text-black">Architect Analysis: </strong>
-                              {job.recommendation ||
-                                job.analysis ||
-                                `High alignment detected between your profile and ${job.company || 'the target role'}'s core architecture requirements.`}
+                              {job.recommendation || job.analysis || `Match analysis for ${job.company || 'this role'} is pending. Complete an analysis to see detailed alignment.`}
                             </p>
                           </div>
 
@@ -440,17 +438,9 @@ export default function JobSuggestionsPage({ onLogout, onNavigate }) {
                                 </span>
                               ))
                             ) : (
-                              <>
-                                <span className="text-[11px] font-bold px-2 py-1 bg-[#e8e8e8] border border-[#cfc4c5] text-black uppercase">
-                                  Go
-                                </span>
-                                <span className="text-[11px] font-bold px-2 py-1 bg-[#e8e8e8] border border-[#cfc4c5] text-black uppercase">
-                                  Kubernetes
-                                </span>
-                                <span className="text-[11px] font-bold px-2 py-1 bg-[#e8e8e8] border border-[#cfc4c5] text-black uppercase">
-                                  System Design
-                                </span>
-                              </>
+                              <span className="text-[11px] font-semibold px-2 py-1 bg-[#e8e8e8] border border-[#cfc4c5] text-black uppercase">
+                                No matched skills found
+                              </span>
                             )}
 
                             {job.missingSkills &&

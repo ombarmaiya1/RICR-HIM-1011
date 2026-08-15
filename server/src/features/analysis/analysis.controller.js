@@ -31,24 +31,24 @@ const fallbackAnalysis = (resume, job) => {
   })
 
   if (matched.length === 0) {
-    matched.push('SOFTWARE DEVELOPMENT', 'PROBLEM SOLVING', 'VERSION CONTROL')
+    matched.push('SOFTWARE DEVELOPMENT', 'PROBLEM SOLVING')
   }
   if (missing.length === 0) {
-    missing.push('SYSTEM ARCHITECTURE', 'PERFORMANCE OPTIMIZATION')
+    missing.push('SYSTEM ARCHITECTURE')
   }
 
-  const score = Math.min(95, Math.max(62, Math.floor(68 + matched.length * 4 - missing.length * 2)))
+  const score = matched.length > 0 ? Math.min(90, Math.max(10, Math.floor(40 + matched.length * 5 - missing.length * 3))) : 0
 
   return {
     matchScore: score,
     matchedSkills: matched.slice(0, 8),
     missingSkills: missing.slice(0, 6),
     suggestions: [
-      `Highlight experience with ${missing[0] || 'key architecture patterns'} in your executive summary.`,
-      `Add quantitative metrics and metrics-driven achievements related to ${matched[0] || 'core technologies'}.`,
-      `Tailor job responsibility bullet points to directly reflect the requirements of ${job.title || 'the target role'}.`,
+      `Highlight experience with ${missing[0] || 'key skills'} in your executive summary.`,
+      `Add quantitative metrics related to ${matched[0] || 'core technologies'}.`,
+      `Tailor job responsibility bullet points to reflect ${job.title ? `the ${job.title}` : 'target role'} requirements.`,
     ],
-    summary: `Candidate demonstrates strong technical alignment (${score}%) with target position "${job.title || 'Role'}". Aligning keyword formatting will maximize ATS parser score.`,
+    summary: `Candidate demonstrates ${score > 0 ? `${score}%` : 'limited'} technical alignment with ${job.title ? `"${job.title}"` : 'the target position'}. Review skill gaps and update resume keywords for better ATS compatibility.`,
   }
 }
 

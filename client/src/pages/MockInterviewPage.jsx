@@ -473,7 +473,7 @@ export default function MockInterviewPage({ onEndSession, onNavigate }) {
                     )}
                   </div>
                   <h3 className="text-xl md:text-2xl font-bold text-black leading-relaxed">
-                    "{currentQ?.question}"
+                    &ldquo;{currentQ?.question}&rdquo;
                   </h3>
                 </div>
 
